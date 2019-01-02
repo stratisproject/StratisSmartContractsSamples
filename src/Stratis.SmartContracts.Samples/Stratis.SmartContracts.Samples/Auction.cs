@@ -1,16 +1,22 @@
 ﻿using Stratis.SmartContracts;
 
+/// <summary>
+/// Implementation of a single-use auction contract.
+/// DISCLAIMER: For demonstration purposes only. We would recommend significant testing
+/// before using the following code in your own applications.
+/// </summary>
+[Deploy]
 public class Auction : SmartContract
 {
     public Address Owner
     {
         get
         {
-            return PersistentState.GetAddress("Owner");
+            return this.PersistentState.GetAddress("Owner");
         }
-        set
+        private set
         {
-            PersistentState.SetAddress("Owner", value);
+            this.PersistentState.SetAddress("Owner", value);
         }
     }
 
@@ -18,11 +24,11 @@ public class Auction : SmartContract
     {
         get
         {
-            return PersistentState.GetUInt64("EndBlock");
+            return this.PersistentState.GetUInt64("EndBlock");
         }
-        set
+        private set
         {
-            PersistentState.SetUInt64("EndBlock", value);
+            this.PersistentState.SetUInt64("EndBlock", value);
         }
     }
 
@@ -30,11 +36,11 @@ public class Auction : SmartContract
     {
         get
         {
-            return PersistentState.GetAddress("HighestBidder");
+            return this.PersistentState.GetAddress("HighestBidder");
         }
-        set
+        private set
         {
-            PersistentState.SetAddress("HighestBidder", value);
+            this.PersistentState.SetAddress("HighestBidder", value);
         }
     }
 
@@ -42,11 +48,11 @@ public class Auction : SmartContract
     {
         get
         {
-            return PersistentState.GetUInt64("HighestBid");
+            return this.PersistentState.GetUInt64("HighestBid");
         }
-        set
+        private set
         {
-            PersistentState.SetUInt64("HighestBid", value);
+            this.PersistentState.SetUInt64("HighestBid", value);
         }
     }
 
@@ -54,58 +60,70 @@ public class Auction : SmartContract
     {
         get
         {
-            return PersistentState.GetBool("HasEnded");
+            return this.PersistentState.GetBool("HasEnded");
         }
-        set
+        private set
         {
-            PersistentState.SetBool("HasEnded", value);
+            this.PersistentState.SetBool("HasEnded", value);
         }
     }
 
-    public ISmartContractMapping<ulong> ReturnBalances
+    public ulong GetBalance(Address address)
     {
-        get
-        {
-            return PersistentState.GetUInt64Mapping("ReturnBalances");
-        }
+        return this.PersistentState.GetUInt64($"Balances[{address}]");
+    }
+
+    private void SetBalance(Address address, ulong balance)
+    {
+        this.PersistentState.SetUInt64($"Balances[{address}]", balance);
     }
 
     public Auction(ISmartContractState smartContractState, ulong durationBlocks)
-    : base(smartContractState)
+        : base(smartContractState)
     {
-        Owner = Message.Sender;
-        EndBlock = Block.Number + durationBlocks;
-        HasEnded = false;
+        this.Owner = this.Message.Sender;
+        this.EndBlock = this.Block.Number + durationBlocks;
+        this.HasEnded = false;
+
+        Log(new Created { duration = durationBlocks, sender = Message.Sender.ToString() });
     }
 
     public void Bid()
     {
-        Assert(Block.Number < EndBlock);
-        Assert(Message.Value > HighestBid);
-        if (HighestBid > 0)
+        Assert(this.Block.Number < this.EndBlock);
+        Assert(this.Message.Value > this.HighestBid);
+        if (this.HighestBid > 0)
         {
-            ReturnBalances[HighestBidder] = HighestBid;
+            ulong currentBalance = GetBalance(this.Message.Sender);
+            SetBalance(this.Message.Sender, this.HighestBid + currentBalance);
         }
-        HighestBidder = Message.Sender;
-        HighestBid = Message.Value;
+        this.HighestBidder = this.Message.Sender;
+        this.HighestBid = this.Message.Value;
     }
 
     public bool Withdraw()
     {
-        ulong amount = ReturnBalances[Message.Sender];
+        ulong amount = GetBalance(this.Message.Sender);
         Assert(amount > 0);
-        ReturnBalances[Message.Sender] = 0;
-        ITransferResult transferResult = TransferFunds(Message.Sender, amount);
+        SetBalance(this.Message.Sender, 0);
+        ITransferResult transferResult = Transfer(this.Message.Sender, amount);
         if (!transferResult.Success)
-            ReturnBalances[Message.Sender] = amount;
+            this.SetBalance(this.Message.Sender, amount);
         return transferResult.Success;
     }
 
     public void AuctionEnd()
     {
-        Assert(Block.Number >= EndBlock);
-        Assert(!HasEnded);
-        HasEnded = true;
-        TransferFunds(Owner, HighestBid);
+        Assert(this.Block.Number >= this.EndBlock);
+        Assert(!this.HasEnded);
+        this.HasEnded = true;
+        Transfer(this.Owner, this.HighestBid);
+    }
+
+    public struct Created
+    {
+        [Index]
+        public ulong duration;
+        public string sender;
     }
 }
