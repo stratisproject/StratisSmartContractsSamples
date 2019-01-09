@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stratis.SmartContracts.Samples", "Stratis.SmartContracts.Samples\Stratis.SmartContracts.Samples\Stratis.SmartContracts.Samples.csproj", "{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stratis.SmartContracts.Samples.Tests", "Stratis.SmartContracts.Samples.Tests\Stratis.SmartContracts.Samples.Tests.csproj", "{637F28C3-8BCE-4324-9105-ACEE620657C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{637F28C3-8BCE-4324-9105-ACEE620657C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{637F28C3-8BCE-4324-9105-ACEE620657C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{637F28C3-8BCE-4324-9105-ACEE620657C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{637F28C3-8BCE-4324-9105-ACEE620657C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
