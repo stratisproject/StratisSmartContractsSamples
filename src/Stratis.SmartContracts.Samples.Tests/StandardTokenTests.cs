@@ -463,5 +463,55 @@ namespace Stratis.SmartContracts.Samples.Tests
 
             this.mockContractLogger.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new StandardToken.TransferLog { From = subject, To = subject, Amount = amount }));
         }
+
+        [Fact]
+        public void TransferFrom_Self()
+        {
+            ulong balance = 100;
+            ulong amount = 27;
+
+            Address subject = this.sender;
+
+            this.mockContractState.Setup(m => m.Message)
+                .Returns(new Message(this.contract, subject, 0));
+
+            var standardToken = new StandardToken(this.mockContractState.Object, 100_000);
+
+            // Setup the balance of the owner in persistent state
+            this.mockPersistentState.Setup(s => s.GetUInt64($"Balance:{subject}")).Returns(balance);
+
+            // Setup the allowance of the owner in persistent state
+            this.mockPersistentState.Setup(s => s.GetUInt64($"Allowance:{subject}:{subject}")).Returns(balance);
+
+            // If a call is made to set the subject's balance to amount, make sure we update the state
+            this.mockPersistentState.Setup(s => s.SetUInt64($"Balance:{subject}", balance - amount))
+                .Callback(() =>
+                    this.mockPersistentState.Setup(s => s.GetUInt64($"Balance:{subject}")).Returns(balance - amount));
+
+            // If a call is made to set the subject's allowance to amount, make sure we update the state
+            this.mockPersistentState.Setup(s => s.SetUInt64($"Allowance:{subject}:{subject}", balance - amount))
+                .Callback(() =>
+                    this.mockPersistentState.Setup(s => s.GetUInt64($"Allowance:{subject}:{subject}")).Returns(balance - amount));
+
+            // Transfer all of the subject's tokens
+            Assert.True(standardToken.TransferFrom(subject, subject, amount));
+
+            // Verify we set the subject's balance to the difference between the amounts
+            this.mockPersistentState.Verify(s => s.SetUInt64($"Balance:{subject}", balance - amount));
+
+            // Verify we get the subject's balance
+            this.mockPersistentState.Verify(s => s.GetUInt64($"Balance:{subject}"));
+
+            // Verify we set the subject's balance back to the initial same amount
+            this.mockPersistentState.Verify(s => s.SetUInt64($"Balance:{subject}", balance));
+
+            // Verify we get the subject's allowance
+            this.mockPersistentState.Verify(s => s.GetUInt64($"Allowance:{subject}:{subject}"));
+
+            // Verify we set the subject's allowance to the difference between the amounts
+            this.mockPersistentState.Verify(s => s.SetUInt64($"Allowance:{subject}:{subject}", balance - amount));
+
+            this.mockContractLogger.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new StandardToken.TransferLog { From = subject, To = subject, Amount = amount }));
+        }
     }
 }
