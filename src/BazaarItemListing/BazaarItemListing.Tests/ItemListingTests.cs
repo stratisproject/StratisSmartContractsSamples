@@ -76,8 +76,9 @@ namespace BazaarItemListing.Tests
         {
             var seller = PartyA;
 
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(ItemListing.Seller))).Returns(seller);
 
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
             var itemListing = new ItemListing(this.mockContractState.Object, "Test", 1, seller, ParentContract, PartyA, PartyB);
 
             // Make the sender the seller.
@@ -93,18 +94,38 @@ namespace BazaarItemListing.Tests
             var buyer = PartyB;
             var itemPrice = 1UL;
 
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
+            // Setup the expected state values.
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(ItemListing.ItemPrice))).Returns(itemPrice);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(ItemListing.Seller))).Returns(seller);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(ItemListing.ParentContract))).Returns(ParentContract);
 
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
             var itemListing = new ItemListing(this.mockContractState.Object, "Test", itemPrice, seller, ParentContract, PartyA, PartyB);
 
-            this.mockInternalExecutor.Setup(c => c.Call(It.IsAny<ISmartContractState>(), ParentContract, 0, nameof(Bazaar.HasBalance), new object[] { buyer, itemPrice }, 0))
+            this.mockInternalExecutor
+                .Setup(c => c.Call(
+                    It.IsAny<ISmartContractState>(),
+                    It.IsAny<Address>(),
+                    It.IsAny<ulong>(),
+                    nameof(Bazaar.HasBalance),
+                    It.IsAny<object[]>(),
+                    It.IsAny<ulong>()))
                 .Returns(TransferResult.Transferred(false));
 
             this.mockContractState.Setup(s => s.Message.Sender).Returns(buyer);
 
             Assert.Throws<SmartContractAssertException>(() => itemListing.BuyItem());
 
-            this.mockInternalExecutor.Verify(c => c.Call(It.IsAny<ISmartContractState>(), ParentContract, 0, nameof(Bazaar.HasBalance), new object[] { buyer, itemPrice }, 0), Times.Once);
+            this.mockInternalExecutor
+                .Verify(
+                    c => c.Call(
+                    It.IsAny<ISmartContractState>(),
+                    ParentContract,
+                    0,
+                    nameof(Bazaar.HasBalance),
+                    It.Is<object[]>(o => (Address)o[0] == buyer && (ulong)o[1] == itemPrice),
+                    0),
+                Times.Once);
         }
 
         [Fact]
@@ -114,17 +135,62 @@ namespace BazaarItemListing.Tests
             var buyer = PartyB;
             var itemPrice = 1UL;
 
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
+            // Setup the expected state values.
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(ItemListing.ItemPrice))).Returns(itemPrice);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(ItemListing.Seller))).Returns(seller);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(ItemListing.ParentContract))).Returns(ParentContract);
 
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ParentContract);
             var itemListing = new ItemListing(this.mockContractState.Object, "Test", itemPrice, seller, ParentContract, PartyA, PartyB);
 
-            this.mockInternalExecutor.Setup(c => c.Call(It.IsAny<ISmartContractState>(), ParentContract, 0, nameof(Bazaar.HasBalance), new object[] { buyer, itemPrice }, 0))
+            // HasBalance returns true.
+            this.mockInternalExecutor
+                .Setup(c => c.Call(
+                    It.IsAny<ISmartContractState>(),
+                    It.IsAny<Address>(),
+                    It.IsAny<ulong>(),
+                    nameof(Bazaar.HasBalance),
+                    It.IsAny<object[]>(),
+                    It.IsAny<ulong>()))
                 .Returns(TransferResult.Transferred(true));
+
+            // UpdateBalance is successful.
+            this.mockInternalExecutor
+                .Setup(c => c.Call(
+                    It.IsAny<ISmartContractState>(),
+                    It.IsAny<Address>(),
+                    It.IsAny<ulong>(),
+                    nameof(Bazaar.UpdateBalance),
+                    It.IsAny<object[]>(),
+                    It.IsAny<ulong>()))
+                .Returns(TransferResult.Empty());
 
             this.mockContractState.Setup(s => s.Message.Sender).Returns(buyer);
 
-            this.mockInternalExecutor.Verify(c => c.Call(It.IsAny<ISmartContractState>(), ParentContract, 0, nameof(Bazaar.HasBalance), new object[] { buyer, itemPrice }, 0), Times.Once);
-            this.mockInternalExecutor.Verify(c => c.Call(It.IsAny<ISmartContractState>(), ParentContract, 0, nameof(Bazaar.UpdateBalance), new object[] { seller, buyer, itemPrice }, 0), Times.Once);
+            itemListing.BuyItem();
+
+            this.mockInternalExecutor
+                .Verify(
+                    c => c.Call(
+                        It.IsAny<ISmartContractState>(),
+                        ParentContract,
+                        0,
+                        nameof(Bazaar.HasBalance),
+                        It.Is<object[]>(o => (Address)o[0] == buyer && (ulong)o[1] == itemPrice),
+                        0),
+                    Times.Once);
+
+            this.mockInternalExecutor
+                .Verify(
+                    c => c.Call(
+                            It.IsAny<ISmartContractState>(),
+                            ParentContract,
+                            0,
+                            nameof(Bazaar.UpdateBalance),
+                            It.Is<object[]>(o => (Address)o[0] == seller && (Address)o[1] == buyer && (ulong)o[2] == itemPrice),
+                            0),
+                    Times.Once);
+
             this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Bazaar.State), (uint)ItemListing.StateType.ItemSold));
         }
 
