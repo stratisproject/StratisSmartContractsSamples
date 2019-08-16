@@ -14,10 +14,15 @@ namespace BazaarItemListing.Tests
         private const string PartyAAddress = "0x0000000000000000000000000000000000000002";
         private const string PartyBAddress = "0x0000000000000000000000000000000000000003";
         private const string NewContractAddress = "0x0000000000000000000000000000000000000004";
+        private const string ItemListingAddress = "0x0000000000000000000000000000000000000005";
+        private const string BazaarAddress = "0x0000000000000000000000000000000000000006";
 
         private static readonly Address Maintainer = MaintainerAddress.HexToAddress();
         private static readonly Address PartyA = PartyAAddress.HexToAddress();
         private static readonly Address PartyB = PartyBAddress.HexToAddress();
+        private static readonly Address ItemListing = ItemListingAddress.HexToAddress();
+        private static readonly Address BazaarContractAddress = BazaarAddress.HexToAddress();
+
         private readonly Mock<ISmartContractState> mockContractState;
         private readonly Mock<IPersistentState> mockPersistentState;
         private readonly Mock<IInternalTransactionExecutor> mockInternalExecutor;
@@ -76,39 +81,41 @@ namespace BazaarItemListing.Tests
         }
 
         [Theory]
-        [InlineData(nameof(Bazaar.PartyA), ulong.MinValue, ulong.MinValue)]
-        [InlineData(nameof(Bazaar.PartyA), 0, 0)]
-        [InlineData(nameof(Bazaar.PartyA), 200, 100)]
-        [InlineData(nameof(Bazaar.PartyA), ulong.MaxValue, ulong.MaxValue)]
-        [InlineData(nameof(Bazaar.PartyB), ulong.MinValue, ulong.MinValue)]
-        [InlineData(nameof(Bazaar.PartyB), 0, 0)]
-        [InlineData(nameof(Bazaar.PartyB), 200, 100)]
-        [InlineData(nameof(Bazaar.PartyB), ulong.MaxValue, ulong.MaxValue)]
-        public void HasBalance_Buyer_Balance_Sufficient(string party, ulong partyBalance, ulong itemPrice)
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, ulong.MinValue, ulong.MinValue)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, 0, 0)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, 100, 100)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, 200, 100)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, ulong.MaxValue, ulong.MaxValue)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, ulong.MinValue, ulong.MinValue)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, 0, 0)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, 100, 100)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, 200, 100)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, ulong.MaxValue, ulong.MaxValue)]
+        public void HasBalance_Buyer_Balance_Sufficient(string party, string partyAddress, ulong partyBalance, ulong itemPrice)
         {
             var bazaar = this.NewBazaar();
 
             this.mockPersistentState.Setup(s => s.GetUInt64(party)).Returns(partyBalance);
 
-            Assert.True(bazaar.HasBalance(PartyA, itemPrice));
+            Assert.True(bazaar.HasBalance(partyAddress.HexToAddress(), itemPrice));
         }
 
         [Theory]
-        [InlineData(nameof(Bazaar.PartyA), ulong.MinValue, ulong.MinValue + 1)]
-        [InlineData(nameof(Bazaar.PartyA), 0, 1)]
-        [InlineData(nameof(Bazaar.PartyA), 100, 200)]
-        [InlineData(nameof(Bazaar.PartyA), ulong.MaxValue, ulong.MaxValue - 1)]
-        [InlineData(nameof(Bazaar.PartyB), ulong.MinValue, ulong.MinValue + 1)]
-        [InlineData(nameof(Bazaar.PartyB), 0, 1)]
-        [InlineData(nameof(Bazaar.PartyB), 100, 200)]
-        [InlineData(nameof(Bazaar.PartyB), ulong.MaxValue, ulong.MaxValue - 1)]
-        public void HasBalance_Buyer_Balance_Insufficient(string party, ulong partyBalance, ulong itemPrice)
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, ulong.MinValue, ulong.MinValue + 1)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, 0, 1)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, 100, 200)]
+        [InlineData(nameof(Bazaar.BalancePartyA), PartyAAddress, ulong.MaxValue - 1, ulong.MaxValue)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, ulong.MinValue, ulong.MinValue + 1)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, 0, 1)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, 100, 200)]
+        [InlineData(nameof(Bazaar.BalancePartyB), PartyBAddress, ulong.MaxValue - 1, ulong.MaxValue)]
+        public void HasBalance_Buyer_Balance_Insufficient(string party, string partyAddress, ulong partyBalance, ulong itemPrice)
         {
             var bazaar = this.NewBazaar();
 
             this.mockPersistentState.Setup(s => s.GetUInt64(party)).Returns(partyBalance);
 
-            Assert.False(bazaar.HasBalance(PartyA, itemPrice));
+            Assert.False(bazaar.HasBalance(partyAddress.HexToAddress(), itemPrice));
         }
 
         [Fact]
@@ -116,7 +123,7 @@ namespace BazaarItemListing.Tests
         {
             var bazaar = this.NewBazaar();
 
-            Assert.False(bazaar.HasBalance(Address.Zero, 0));
+            Assert.Throws<SmartContractAssertException>(() => bazaar.HasBalance(Address.Zero, 0));
         }
 
         [Fact]
@@ -124,10 +131,10 @@ namespace BazaarItemListing.Tests
         {
             var bazaar = this.NewBazaar();
 
-            // Any sender will do here, as long as it's not an item listing.
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.CurrentItemListing))).Returns(ItemListing);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
 
-            Assert.Throws<SmartContractAssertException>(() => bazaar.HasBalance(PartyA, 0));
+            Assert.Throws<SmartContractAssertException>(() => bazaar.UpdateBalance(PartyA, PartyB, 0));
         }
 
         [Theory]
@@ -137,6 +144,14 @@ namespace BazaarItemListing.Tests
             var bazaar = this.NewBazaar();
 
             // Ensure the party has enough balance
+            this.mockPersistentState.Setup(s => s.GetUInt64(buyerParty)).Returns(buyerPartyBalance);
+
+            // Item listing contract is making the call.
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ItemListing);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.CurrentItemListing))).Returns(ItemListing);
+
+            // Set the initial balances
+            this.mockPersistentState.Setup(s => s.GetUInt64(sellerParty)).Returns(sellerPartyBalance);
             this.mockPersistentState.Setup(s => s.GetUInt64(buyerParty)).Returns(buyerPartyBalance);
 
             bazaar.UpdateBalance(seller, buyer, price);
@@ -157,10 +172,20 @@ namespace BazaarItemListing.Tests
             var itemPrice = ulong.MaxValue;
 
             // Seller starts with a balance of 1.
-            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.PartyA))).Returns(1);
+            // Use a variable + value function here to emulate the behaviour of persistent state.
+            var balancePartyA = 1UL;
+
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyA))).Returns(() => balancePartyA);
+            this.mockPersistentState.Setup(s => s.SetUInt64(nameof(Bazaar.BalancePartyA), It.IsAny<ulong>())).Callback<string, ulong>((_, x) => balancePartyA = x);
 
             // Buyer starts with a balance equal to the item price.
-            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.PartyB))).Returns(itemPrice);
+            var balancePartyB = itemPrice;
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyB))).Returns(() => balancePartyB);
+            this.mockPersistentState.Setup(s => s.SetUInt64(nameof(Bazaar.BalancePartyB), It.IsAny<ulong>())).Callback<string, ulong>((_, x) => balancePartyB = x);
+
+            // Item listing contract is making the call.
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ItemListing);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.CurrentItemListing))).Returns(ItemListing);
 
             // Party A sells the item to Party B for ulong.MaxValue.
             // This should cause an overflow Party A's balance will attempt to be set to ulong.MaxValue + 1.
@@ -175,10 +200,14 @@ namespace BazaarItemListing.Tests
             var itemPrice = ulong.MaxValue;
 
             // Seller starts with a balance of 1.
-            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.PartyB))).Returns(1);
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyA))).Returns(1);
 
             // Buyer starts with a balance equal to the item price.
-            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.PartyA))).Returns(itemPrice);
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyB))).Returns(itemPrice);
+
+            // Item listing contract is making the call.
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ItemListing);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.CurrentItemListing))).Returns(ItemListing);
 
             // Party B sells the item to Party A for ulong.MaxValue.
             Assert.Throws<OverflowException>(() => bazaar.UpdateBalance(PartyB, PartyA, itemPrice));
@@ -195,22 +224,34 @@ namespace BazaarItemListing.Tests
         }
 
         [Theory]
-        [InlineData(PartyAAddress)]
-        [InlineData(PartyBAddress)]
-        public void ListItem_Success_PartyA_PartyB(string sender)
+        [InlineData(PartyAAddress, ulong.MinValue)]
+        [InlineData(PartyBAddress, ulong.MinValue)]
+        [InlineData(PartyAAddress, ulong.MaxValue)]
+        [InlineData(PartyBAddress, ulong.MaxValue)]
+        public void ListItem_Success_PartyA_PartyB(string sender, ulong itemPrice)
         {
             var senderAddress = sender.HexToAddress();
             var newContractAddress = NewContractAddress.HexToAddress();
+            var itemName = "Test";
 
             var bazaar = this.NewBazaar();
 
             this.mockContractState.Setup(s => s.Message.Sender).Returns(senderAddress);
 
-            this.mockInternalExecutor.Setup(i => i.Create<ItemListing>(this.mockContractState.Object, 0, null, 0)).Returns(CreateResult.Succeeded(newContractAddress));
+            this.mockInternalExecutor.Setup(i => i.Create<ItemListing>(this.mockContractState.Object, 0, It.IsAny<object[]>(), 0)).Returns(CreateResult.Succeeded(newContractAddress));
 
-            bazaar.ListItem("Test", 0);
+            bazaar.ListItem("Test", itemPrice);
 
-            this.mockInternalExecutor.Verify(i => i.Create<ItemListing>(this.mockContractState.Object, 0, null, 0));
+            this.mockInternalExecutor.Verify(i => i.Create<ItemListing>(this.mockContractState.Object, 0,
+                It.Is<object[]>(o =>
+                    (string)o[0] == itemName &&
+                    (ulong)o[1] == itemPrice &&
+                    (Address)o[2] == senderAddress &&
+                    (Address)o[3] == BazaarContractAddress &&
+                    (Address)o[4] == PartyA &&
+                    (Address)o[5] == PartyB
+                ),
+                0));
 
             this.mockPersistentState.Verify(s => s.SetAddress(nameof(Bazaar.CurrentItemListing), newContractAddress));
 
@@ -224,15 +265,15 @@ namespace BazaarItemListing.Tests
                 var result = new List<object[]>();
 
                 // SellerParty, SellerPartyAddress, SellerPartyBalance, BuyerParty, BuyerPartyAddress, BuyerPartyBalance, SalePrice
-                result.Add(new object[] { nameof(Bazaar.PartyA), PartyA, 0, nameof(Bazaar.PartyB), PartyB, 0, 0 });
-                result.Add(new object[] { nameof(Bazaar.PartyA), PartyA, 100, nameof(Bazaar.PartyB), PartyB, 200, 150 });
-                result.Add(new object[] { nameof(Bazaar.PartyA), PartyA, 0, nameof(Bazaar.PartyB), PartyB, uint.MaxValue, uint.MaxValue - 1, });
-                result.Add(new object[] { nameof(Bazaar.PartyA), PartyA, 100, nameof(Bazaar.PartyB), PartyB, 200, 150 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyA), PartyA, 0, nameof(Bazaar.BalancePartyB), PartyB, 0, 0 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyA), PartyA, 100, nameof(Bazaar.BalancePartyB), PartyB, 200, 150 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyA), PartyA, 0, nameof(Bazaar.BalancePartyB), PartyB, uint.MaxValue, uint.MaxValue - 1, });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyA), PartyA, 100, nameof(Bazaar.BalancePartyB), PartyB, 200, 150 });
 
-                result.Add(new object[] { nameof(Bazaar.PartyB), PartyB, 0, nameof(Bazaar.PartyA), PartyA, 0, 0 });
-                result.Add(new object[] { nameof(Bazaar.PartyB), PartyB, 100, nameof(Bazaar.PartyA), PartyA, 200, 150 });
-                result.Add(new object[] { nameof(Bazaar.PartyB), PartyB, 0, nameof(Bazaar.PartyA), PartyA, uint.MaxValue, uint.MaxValue - 1 });
-                result.Add(new object[] { nameof(Bazaar.PartyB), PartyB, 100, nameof(Bazaar.PartyA), PartyA, 200, 150 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyB), PartyB, 0, nameof(Bazaar.BalancePartyA), PartyA, 0, 0 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyB), PartyB, 100, nameof(Bazaar.BalancePartyA), PartyA, 200, 150 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyB), PartyB, 0, nameof(Bazaar.BalancePartyA), PartyA, uint.MaxValue, uint.MaxValue - 1 });
+                result.Add(new object[] { nameof(Bazaar.BalancePartyB), PartyB, 100, nameof(Bazaar.BalancePartyA), PartyA, 200, 150 });
 
                 return result;
             }
@@ -241,7 +282,11 @@ namespace BazaarItemListing.Tests
         public Bazaar NewBazaar()
         {
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Maintainer);
-
+            this.mockContractState.Setup(s => s.Message.ContractAddress).Returns(BazaarContractAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.PartyA))).Returns(PartyA);
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyA))).Returns(0);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Bazaar.PartyB))).Returns(PartyB);
+            this.mockPersistentState.Setup(s => s.GetUInt64(nameof(Bazaar.BalancePartyB))).Returns(0);
             return new Bazaar(this.mockContractState.Object, PartyA, 0, PartyB, 0);
         }
     }

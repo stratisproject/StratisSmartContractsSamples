@@ -76,7 +76,7 @@ public class ItemListing : SmartContract
 
         var hasBalance = this.Call(this.ParentContract, 0, "HasBalance", new object[] { Message.Sender, ItemPrice });
 
-        Assert((bool) hasBalance.ReturnValue);
+        Assert(hasBalance.Success && (bool)hasBalance.ReturnValue);
 
         Buyer = Message.Sender;
 
