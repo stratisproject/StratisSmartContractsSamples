@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29209.62
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalLockerContract", "DigitalLockerContract\DigitalLockerContract.csproj", "{E5B18F17-01A6-495D-B1A9-0F75D5C6B0C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalLockerContract.Tests", "DigitalLockerContract.Tests\DigitalLockerContract.Tests.csproj", "{DFDEB765-957E-4D5C-B571-DE5D957CBB26}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E5B18F17-01A6-495D-B1A9-0F75D5C6B0C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5B18F17-01A6-495D-B1A9-0F75D5C6B0C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5B18F17-01A6-495D-B1A9-0F75D5C6B0C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5B18F17-01A6-495D-B1A9-0F75D5C6B0C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFDEB765-957E-4D5C-B571-DE5D957CBB26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFDEB765-957E-4D5C-B571-DE5D957CBB26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFDEB765-957E-4D5C-B571-DE5D957CBB26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFDEB765-957E-4D5C-B571-DE5D957CBB26}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C7C4B130-9096-4822-8BFC-0FE102E74B13}
+	EndGlobalSection
+EndGlobal
