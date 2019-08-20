@@ -220,6 +220,21 @@ namespace DefectiveComponentCounterContract.Tests
             }
         }
 
+        [Fact]
+        public void Get_DefectiveComponentCount_Failure_If_12()
+        {
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
+
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
+
+            this.mockPersistentState.Invocations.Clear();
+
+            Assert.Throws<SmartContractAssertException>(() => defectiveComponentsCounter.GetDefectiveComponentsCount(12));
+
+            this.mockPersistentState.Verify(s => s.GetArray<uint>("DefectiveComponentsCount"), Times.Never);
+        }
+
         private static uint[] ToFixedWidthArray(uint[] items, int width = 12)
         {
             var tempComponents = new uint[width];
