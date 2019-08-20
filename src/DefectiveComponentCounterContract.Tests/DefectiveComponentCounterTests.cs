@@ -28,6 +28,9 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockContractState.Setup(s => s.PersistentState).Returns(this.mockPersistentState.Object);
             this.mockContractState.Setup(s => s.ContractLogger).Returns(this.mockContractLogger.Object);
             this.mockContractState.Setup(s => s.InternalTransactionExecutor).Returns(this.mockInternalExecutor.Object);
+
+            // Mock serializer behaviour.
+            this.mockContractState.Setup(s => s.Serializer.ToUInt32(It.IsAny<byte[]>())).Returns((byte[] val) => BitConverter.ToUInt32(val));
         }
 
         [Theory]
@@ -48,7 +51,9 @@ namespace DefectiveComponentCounterContract.Tests
         {
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "1,2,3");
+            var arr = ToByteArray(new uint[] { 1, 2, 3 });
+
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, arr);
 
             this.mockPersistentState.Verify(s => s.SetAddress(nameof(DefectiveComponentCounter.Manufacturer), ManufacturerAddress), Times.Once);
             this.mockPersistentState.Verify(s => s.SetArray("DefectiveComponentsCount", new uint[12] { 1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0 }), Times.Once);
@@ -56,35 +61,34 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockPersistentState.Verify(s => s.SetUInt32(nameof(DefectiveComponentCounter.State), (uint)DefectiveComponentCounter.StateType.Create), Times.Once);
         }
 
+        private static byte[] ToByteArray(uint[] arr)
+        {
+            return arr.Select(i => BitConverter.GetBytes(i)).SelectMany(x => x).ToArray();
+        }
+
         [Theory]
-        [InlineData("")]
-        [InlineData("1,2,3,4,5,6,7,8,9,10,11,12")]
-        [InlineData("1,2,3,4,5,6,7,8,9,10,11,12,13")]
-        [InlineData("1,2,3,4,5")]
-        [InlineData("4294967295")] // uint.MaxValue
-        public void Constructor_Sets_Initial_Values_ComponentCounts_Success(string componentCounts)
+        [InlineData(new uint[] { })]
+        [InlineData(new uint[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 })]
+        [InlineData(new uint[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 })]
+        [InlineData(new uint[] { 1, 2, 3, 4, 5 })]
+        [InlineData(new uint[] { 4294967295 })] // uint.MaxValue
+        public void Constructor_Sets_Initial_Values_ComponentCounts_Success(uint[] componentCounts)
         {
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, componentCounts);
+            var arr = ToByteArray(componentCounts);
 
-            var arr = new uint[12];
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, arr);
 
-            componentCounts.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Take(12)
-                    .Select(c => uint.Parse(c))
-                    .ToArray()
-                    .CopyTo(arr, 0);
-
-            this.mockPersistentState.Verify(s => s.SetArray("DefectiveComponentsCount", arr), Times.Once);
+            var persistedComponents = ToFixedWidthArray(componentCounts);
+            this.mockPersistentState.Verify(s => s.SetArray("DefectiveComponentsCount", persistedComponents), Times.Once);
         }
 
         [Theory]
-        [InlineData("1.2.3.4.5")]
-        [InlineData("-2147483649")] // int.MinValue - 1
-        [InlineData("4294967296")] // uint.MaxValue + 1
-        public void Constructor_Sets_Initial_Values_ComponentCounts_Failure(string componentCounts)
+        [InlineData(new byte[sizeof(uint) - 1] { 0x00, 0x00, 0x00 })] // Invalid width
+        [InlineData(new byte[sizeof(uint) + 1] { 0x00, 0x00, 0x00, 0x00, 0x00 })] // Invalid width
+        public void Constructor_Sets_Initial_Values_ComponentCounts_Failure(byte[] componentCounts)
         {
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
@@ -98,7 +102,7 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
 
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
 
@@ -106,14 +110,16 @@ namespace DefectiveComponentCounterContract.Tests
         }
 
         [Theory]
-        [InlineData(new uint[] { 1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0 }, 15)]
+        [InlineData(new uint[] { 1, 2, 3, 4, 5 }, 15)]
         [InlineData(new uint[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }, 78)]
         public void ComputeTotal_Computes_Correctly(uint[] components, uint expectedTotal)
         {
+            components = ToFixedWidthArray(components);
+
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, ToByteArray(components));
             this.mockPersistentState.Setup(s => s.GetArray<uint>("DefectiveComponentsCount")).Returns(components);
 
             defectiveComponentsCounter.ComputeTotal();
@@ -125,14 +131,13 @@ namespace DefectiveComponentCounterContract.Tests
         [InlineData(new uint[] { 1, uint.MaxValue })] // 1, uint.MaxValue
         public void ComputeTotal_Overflow_Throws_Exception(uint[] components)
         {
-            var tempComponents = new uint[12];
-            components.Take(12).ToArray().CopyTo(tempComponents, 0);
+            components = ToFixedWidthArray(components);
 
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
-            this.mockPersistentState.Setup(s => s.GetArray<uint>("DefectiveComponentsCount")).Returns(tempComponents);
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
+            this.mockPersistentState.Setup(s => s.GetArray<uint>("DefectiveComponentsCount")).Returns(components);
 
             Assert.Throws<OverflowException>(() => defectiveComponentsCounter.ComputeTotal());
         }
@@ -145,7 +150,7 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
 
             var startingCounts = new uint[12]
             {
@@ -178,7 +183,7 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
 
             this.mockPersistentState.Invocations.Clear();
 
@@ -193,7 +198,7 @@ namespace DefectiveComponentCounterContract.Tests
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DefectiveComponentCounter.Manufacturer))).Returns(ManufacturerAddress);
             this.mockContractState.Setup(s => s.Message.Sender).Returns(ManufacturerAddress);
 
-            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, "");
+            var defectiveComponentsCounter = new DefectiveComponentCounter(this.mockContractState.Object, new byte[] { });
 
             var startingCounts = new uint[12]
             {
@@ -213,6 +218,14 @@ namespace DefectiveComponentCounterContract.Tests
                 // Clear invocations.
                 this.mockPersistentState.Invocations.Clear();
             }
+        }
+
+        private static uint[] ToFixedWidthArray(uint[] items, int width = 12)
+        {
+            var tempComponents = new uint[width];
+            items.Take(width).ToArray().CopyTo(tempComponents, 0);
+
+            return tempComponents;
         }
     }
 }

@@ -3,28 +3,39 @@ using Stratis.SmartContracts;
 
 public class DefectiveComponentCounter : SmartContract
 {
-    public DefectiveComponentCounter(ISmartContractState state, string defectiveComponentsCount)
+    public DefectiveComponentCounter(ISmartContractState state, byte[] defectiveComponentsCount)
         : base(state)
     {
         this.Manufacturer = Message.Sender;
-        
-        var components = defectiveComponentsCount.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-        var defectiveComponents = new uint[12];
+        Assert(defectiveComponentsCount.Length % sizeof(uint) == 0);
 
-        for (uint i = 0; i < 12; i++)
-        {
-            if (components.Length < i + 1)
-                break;
-
-            Assert(uint.TryParse(components[i], out var value));
-
-            defectiveComponents[i] = value;
-        }
+        uint[] defectiveComponents = this.ByteArrayToUIntArray(defectiveComponentsCount);
 
         this.DefectiveComponentsCount = defectiveComponents;
         this.Total = 0;
         this.State = (uint)StateType.Create;
+    }
+
+    private uint[] ByteArrayToUIntArray(byte[] defectiveComponentsCount)
+    {
+        var defectiveComponents = new uint[12];
+
+        for (uint i = 0; i < 12; i++)
+        {
+            var next = sizeof(uint) * i;
+
+            if (next >= defectiveComponentsCount.Length)
+                break;
+
+            var value = new byte[sizeof(uint)];
+
+            Array.Copy(defectiveComponentsCount, next, value, 0, sizeof(uint));
+
+            defectiveComponents[i] = this.Serializer.ToUInt32(value);
+        }
+
+        return defectiveComponents;
     }
 
     public enum StateType : uint
