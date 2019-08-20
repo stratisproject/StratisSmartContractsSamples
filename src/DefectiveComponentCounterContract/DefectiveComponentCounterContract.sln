@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29209.62
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DefectiveComponentCounterContract", "DefectiveComponentCounterContract.csproj", "{067E8928-71AB-4C64-A198-030C1ED216A2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DefectiveComponentCounterContract", "DefectiveComponentCounterContract\DefectiveComponentCounterContract.csproj", "{067E8928-71AB-4C64-A198-030C1ED216A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DefectiveComponentCounterContract.Tests", "..\DefectiveComponentCounterContract.Tests\DefectiveComponentCounterContract.Tests.csproj", "{412D7EBB-49BD-41BE-BE81-B40751299412}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DefectiveComponentCounterContract.Tests", "DefectiveComponentCounterContract.Tests\DefectiveComponentCounterContract.Tests.csproj", "{412D7EBB-49BD-41BE-BE81-B40751299412}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
