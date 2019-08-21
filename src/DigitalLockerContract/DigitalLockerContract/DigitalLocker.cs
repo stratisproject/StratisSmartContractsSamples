@@ -11,6 +11,12 @@ public class DigitalLocker : SmartContract
         this.State = (uint)StateType.DocumentReview;
     }
 
+    public const string Pending = "Pending";
+    public const string Rejected = "Rejected";
+    public const string Approved = "Approved";
+    public const string Shared = "Shared";
+    public const string Available = "Available";
+
     public enum StateType : uint
     {
         Requested = 0,
