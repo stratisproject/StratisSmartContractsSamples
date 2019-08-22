@@ -14,7 +14,7 @@ public class DigitalLocker : SmartContract
         Owner = Message.Sender;
         LockerFriendlyName = lockerFriendlyName;
         BankAgent = bankAgent;
-        State = (uint)StateType.DocumentReview;
+        State = (uint)StateType.Requested;
     }
 
     public enum StateType : uint
@@ -102,6 +102,7 @@ public class DigitalLocker : SmartContract
     public void BeginReviewProcess()
     {
         Assert(Message.Sender != Owner);
+        Assert(State == (uint)StateType.Requested);
 
         BankAgent = Message.Sender;
         LockerStatus = Pending;

@@ -68,7 +68,7 @@ namespace DigitalLockerContract.Tests
             this.mockPersistentState.Verify(s => s.SetAddress(nameof(DigitalLocker.Owner), OwnerAddress), Times.Once);
             this.mockPersistentState.Verify(s => s.SetString(nameof(DigitalLocker.LockerFriendlyName), "Test"), Times.Once);
             this.mockPersistentState.Verify(s => s.SetAddress(nameof(DigitalLocker.BankAgent), BankAgentAddress), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(DigitalLocker.State), (uint)DigitalLocker.StateType.DocumentReview), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(DigitalLocker.State), (uint)DigitalLocker.StateType.Requested), Times.Once);
         }
 
         [Fact]
@@ -86,6 +86,29 @@ namespace DigitalLockerContract.Tests
             this.mockPersistentState.Verify(s => s.SetUInt32(nameof(DigitalLocker.State), It.IsAny<uint>()), Times.Never);
         }
 
+        [Theory]
+        [InlineData((uint)DigitalLocker.StateType.AvailableToShare)]
+        [InlineData((uint)DigitalLocker.StateType.DocumentReview)]
+        [InlineData((uint)DigitalLocker.StateType.SharingRequestPending)]
+        [InlineData((uint)DigitalLocker.StateType.SharingWithThirdParty)]
+        [InlineData((uint)DigitalLocker.StateType.Terminated)]
+        public void BeginReviewProcess_State_Must_Be_Requested(uint state)
+        {
+            var digitalLocker = this.NewDigitalLocker();
+
+            // Sender is NOT the owner.
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
+
+            // State is NOT document review.
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(DigitalLocker.State))).Returns(state);
+
+            Assert.Throws<SmartContractAssertException>(() => digitalLocker.BeginReviewProcess());
+
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(DigitalLocker.BankAgent), It.IsAny<Address>()), Times.Never);
+            this.mockPersistentState.Verify(s => s.SetString(nameof(DigitalLocker.LockerStatus), It.IsAny<string>()), Times.Never);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(DigitalLocker.State), It.IsAny<uint>()), Times.Never);
+        }
+
         [Fact]
         public void BeginReviewProcess_Success()
         {
@@ -93,6 +116,9 @@ namespace DigitalLockerContract.Tests
 
             // Sender is not the owner.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(NewBankAgentAddress);
+
+            // State is requested.
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(DigitalLocker.State))).Returns((uint)DigitalLocker.StateType.Requested);
 
             digitalLocker.BeginReviewProcess();
 
@@ -408,7 +434,7 @@ namespace DigitalLockerContract.Tests
 
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DigitalLocker.Owner))).Returns(OwnerAddress);
             this.mockPersistentState.Setup(s => s.GetString(nameof(DigitalLocker.LockerFriendlyName))).Returns("Test");
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(DigitalLocker.State))).Returns((uint)DigitalLocker.StateType.DocumentReview);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(DigitalLocker.State))).Returns((uint)DigitalLocker.StateType.Requested);
             this.mockPersistentState.Setup(s => s.GetAddress(nameof(DigitalLocker.BankAgent))).Returns(BankAgentAddress);
 
             var locker = new DigitalLocker(this.mockContractState.Object, "Test", BankAgentAddress);
