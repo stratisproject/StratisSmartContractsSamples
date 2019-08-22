@@ -2,93 +2,47 @@
 
 public class Starter : SmartContract
 {
-    public Starter(ISmartContractState state, string gameName)
+    public Starter(ISmartContractState state)
         : base(state)
     {
-        PingPongGameName = gameName;
-        GameStarter = Message.Sender;
-
-        var createResult = Create<Player>(0, new object[] { gameName });
-
-        Assert(createResult.Success);
-
-        GamePlayer = createResult.NewContractAddress;
-
-        State = (uint)StateType.GameProvisioned;
     }
 
-    public enum StateType : uint
+    /// <summary>
+    /// Creates two contracts that can ping/pong back and forth between each other up to <see cref="maxPingPongTimes"/>.
+    /// </summary>
+    /// <param name="player1"></param>
+    /// <param name="player2"></param>
+    /// <param name="gameName"></param>
+    /// <param name="maxPingPongTimes"></param>
+    public void StartGame(Address player1, Address player2, string gameName)
     {
-        GameProvisioned = 0,
-        PingPonging = 1,
-        GameFinished = 2
+        var player1CreateResult = Create<Player>(0, new object[] { player1, player2, gameName });
+
+        Assert(player1CreateResult.Success);
+
+        var player2CreateResult = Create<Player>(0, new object[] { player2, player1, gameName });
+
+        Assert(player2CreateResult.Success);
+
+        Log(
+            new GameCreated
+            {
+                Player1Contract = player1CreateResult.NewContractAddress,
+                Player2Contract = player2CreateResult.NewContractAddress,
+                GameName = gameName
+            }
+        );
+
     }
 
-    public uint State
+    public struct GameCreated
     {
-        get => PersistentState.GetUInt32(nameof(State));
-        private set => PersistentState.SetUInt32(nameof(State), value);
-    }
+        [Index]
+        public Address Player1Contract;
 
-    public string PingPongGameName
-    {
-        get => PersistentState.GetString(nameof(PingPongGameName));
-        private set => PersistentState.SetString(nameof(PingPongGameName), value);
-    }
+        [Index]
+        public Address Player2Contract;
 
-    public Address GameStarter
-    {
-        get => PersistentState.GetAddress(nameof(GameStarter));
-        private set => PersistentState.SetAddress(nameof(GameStarter), value);
-    }
-
-    public Address GamePlayer
-    {
-        get => PersistentState.GetAddress(nameof(GamePlayer));
-        private set => PersistentState.SetAddress(nameof(GamePlayer), value);
-    }
-
-    public int PingPongTimes
-    {
-        get => PersistentState.GetInt32(nameof(PingPongTimes));
-        private set => PersistentState.SetInt32(nameof(PingPongTimes), value);
-    }
-
-    public void StartPingPong(int pingPongTimes)
-    {
-        Assert(Message.Sender == GameStarter);
-
-        PingPongTimes = pingPongTimes;
-        State = (uint)StateType.PingPonging;
-
-        var callResult = Call(GamePlayer, 0, nameof(Player.Ping), new object[] { pingPongTimes });
-
-        Assert(callResult.Success);
-    }
-
-    public void Pong(int currentPingPongTimes)
-    {
-        Assert(Message.Sender == GamePlayer);
-
-        currentPingPongTimes = currentPingPongTimes - 1;
-
-        if (currentPingPongTimes > 0)
-        {
-            State = (uint)StateType.PingPonging;
-            var callResult = Call(GamePlayer, 0, nameof(Player.Ping), new object[] { currentPingPongTimes });
-            Assert(callResult.Success);
-        }
-        else
-        {
-            State = (uint)StateType.GameFinished;
-            var callResult = Call(GamePlayer, 0, nameof(Player.FinishGame));
-            Assert(callResult.Success);
-        }
-    }
-
-    public void FinishGame()
-    {
-        Assert(Message.Sender == GamePlayer);
-        State = (uint)StateType.GameFinished;
+        public string GameName;
     }
 }

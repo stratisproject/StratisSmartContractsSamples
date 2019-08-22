@@ -9,9 +9,11 @@ namespace PingPongContract.Tests
 {
     public class PlayerTests
     {
-        private const string StarterContract = "0x0000000000000000000000000000000000000001";
+        private const string PlayerAdd = "0x0000000000000000000000000000000000000001";
+        private const string Opponent = "0x0000000000000000000000000000000000000002";
 
-        private static readonly Address StarterContractAddress = StarterContract.HexToAddress();
+        private static readonly Address PlayerAddress = PlayerAdd.HexToAddress();
+        private static readonly Address OpponentAddress = Opponent.HexToAddress();
 
         private readonly Mock<ISmartContractState> mockContractState;
         private readonly Mock<IPersistentState> mockPersistentState;
@@ -31,8 +33,11 @@ namespace PingPongContract.Tests
 
         [Theory]
         [InlineData(nameof(Player.State))]
-        [InlineData(nameof(Player.PingPongGameName))]
-        [InlineData(nameof(Player.GameStarter))]
+        [InlineData(nameof(Player.GameName))]
+        [InlineData(nameof(Player.PlayerAddress))]
+        [InlineData(nameof(Player.Opponent))]
+        [InlineData(nameof(Player.PingsSent))]
+        [InlineData(nameof(Player.PingsReceived))]
         public void Property_Setter_Is_Private(string propertyName)
         {
             Type type = typeof(Player);
@@ -45,77 +50,142 @@ namespace PingPongContract.Tests
         [Fact]
         public void Constructor_Sets_Initial_Values()
         {
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(StarterContractAddress);
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
 
-            var player = new Player(this.mockContractState.Object, "Test");
+            var player = new Player(this.mockContractState.Object, PlayerAddress, OpponentAddress, "Test");
 
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(Player.GameStarter), StarterContractAddress), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetString(nameof(Player.PingPongGameName), "Test"), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.PingPongPlayerCreated), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(Player.PlayerAddress), PlayerAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(Player.Opponent), OpponentAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetString(nameof(Player.GameName), "Test"), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.Provisioned), Times.Once);
         }
 
         [Fact]
-        public void Ping_Sender_Not_GameStarter_Fails()
+        public void SendPing_Sender_Not_Player_Fails()
         {
             var player = this.NewPlayer();
 
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
 
-            Assert.Throws<SmartContractAssertException>(() => player.Ping(int.MaxValue));
-        }
-
-        [Fact]
-        public void Ping_CurrentPingPongTimes_GreaterThan0()
-        {
-            var player = this.NewPlayer();
-
-            var currentPingPongTimes = int.MaxValue;
-            var currentPingPongTimesMinus1 = currentPingPongTimes - 1;
-
-            // Only the starter contract can call this.
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(StarterContractAddress);
-
-            this.mockInternalExecutor.Setup(s =>
-                s.Call(
-                    It.IsAny<ISmartContractState>(),
-                    It.IsAny<Address>(),
-                    It.IsAny<ulong>(),
-                    It.IsAny<string>(),
-                    It.IsAny<object[]>(),
-                    It.IsAny<ulong>()))
-                .Returns(TransferResult.Empty());
-
-            player.Ping(currentPingPongTimes);
-
-            // Verify we call back with the pong == ping - 1.
-            this.mockInternalExecutor.Verify(s => s.Call(this.mockContractState.Object, StarterContractAddress, 0, nameof(Starter.Pong), It.Is<object[]>(o => (int)o[0] == currentPingPongTimesMinus1), 0));
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Starter.State), (uint)Player.StateType.PingPonging), Times.Once);
+            Assert.Throws<SmartContractAssertException>(() => player.SendPing());
         }
 
         [Theory]
-        [InlineData(1)]
-        [InlineData(0)]
-        public void Ping_CurrentPingPongTimes_LessThanEqual1(uint currentPingPongTimes)
+        [InlineData((uint)Player.StateType.Finished)]
+        [InlineData((uint)Player.StateType.SentPing)]
+        public void SendPing_State_Not_Received_Or_Provisioned_Player_Fails(uint state)
         {
-            var starter = this.NewPlayer();
+            var player = this.NewPlayer();
 
-            // Only the player contract can call this.
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(StarterContractAddress);
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.State))).Returns(state);
+
+            Assert.Throws<SmartContractAssertException>(() => player.SendPing());
+        }
+
+        [Fact]
+        public void SendPing_Opponent_Finished_Success()
+        {
+            var player = this.NewPlayer();
+
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.State))).Returns((uint)Player.StateType.ReceivedPing);
+
+            // Return true
+            this.mockInternalExecutor.Setup(s =>
+                s.Call(
+                    It.IsAny<ISmartContractState>(),
+                    It.IsAny<Address>(),
+                    It.IsAny<ulong>(),
+                    nameof(Player.IsFinished),
+                    It.IsAny<object[]>(),
+                    It.IsAny<ulong>()))
+                .Returns(TransferResult.Transferred(true));
+
+            player.SendPing();
+
+            this.mockInternalExecutor.Verify(s => s.Call(this.mockContractState.Object, OpponentAddress, 0, nameof(Player.IsFinished), null, 0));
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.Finished), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(uint.MinValue, 1)]
+        [InlineData(uint.MaxValue, 0)] // uint.MaxValue should overflow
+        public void SendPing_Opponent_Not_Finished_Success(uint initialPingsSent, uint expectedPingsSent)
+        {
+            var player = this.NewPlayer();
+
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.State))).Returns((uint)Player.StateType.ReceivedPing);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.PingsSent))).Returns(initialPingsSent);
+
+            // Return false
+            this.mockInternalExecutor.Setup(s =>
+                s.Call(
+                    It.IsAny<ISmartContractState>(),
+                    It.IsAny<Address>(),
+                    It.IsAny<ulong>(),
+                    nameof(Player.IsFinished),
+                    It.IsAny<object[]>(),
+                    It.IsAny<ulong>()))
+                .Returns(TransferResult.Transferred(false));
 
             this.mockInternalExecutor.Setup(s =>
                 s.Call(
                     It.IsAny<ISmartContractState>(),
                     It.IsAny<Address>(),
                     It.IsAny<ulong>(),
-                    It.IsAny<string>(),
+                    nameof(Player.ReceivePing),
                     It.IsAny<object[]>(),
                     It.IsAny<ulong>()))
                 .Returns(TransferResult.Empty());
 
-            starter.Ping(currentPingPongTimes);
+            player.SendPing();
 
-            this.mockInternalExecutor.Verify(s => s.Call(this.mockContractState.Object, StarterContractAddress, 0, nameof(Starter.FinishGame), null, 0));
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.GameFinished), Times.Once);
+            this.mockInternalExecutor.Verify(s => s.Call(this.mockContractState.Object, OpponentAddress, 0, nameof(Player.IsFinished), null, 0));
+            this.mockInternalExecutor.Verify(s => s.Call(this.mockContractState.Object, OpponentAddress, 0, nameof(Player.ReceivePing), null, 0));
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.PingsSent), expectedPingsSent), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.SentPing), Times.Once);
+        }
+
+        [Fact]
+        public void ReceivePing_Sender_Not_Player_Fails()
+        {
+            var player = this.NewPlayer();
+
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
+
+            Assert.Throws<SmartContractAssertException>(() => player.ReceivePing());
+        }
+
+        [Theory]
+        [InlineData((uint)Player.StateType.Finished)]
+        [InlineData((uint)Player.StateType.ReceivedPing)]
+        public void ReceivePing_State_Not_Sent_Or_Provisioned_Player_Fails(uint state)
+        {
+            var player = this.NewPlayer();
+
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.State))).Returns(state);
+
+            Assert.Throws<SmartContractAssertException>(() => player.ReceivePing());
+        }
+
+        [Theory]
+        [InlineData(uint.MinValue, 1)]
+        [InlineData(uint.MaxValue, 0)] // uint.MaxValue should overflow
+        public void ReceivePing_Success(uint initialPingsReceived, uint expectedPingsReceived)
+        {
+            var player = this.NewPlayer();
+
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(OpponentAddress);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.State))).Returns((uint)Player.StateType.SentPing);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(Player.PingsReceived))).Returns(initialPingsReceived);
+
+            player.ReceivePing();
+
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.PingsReceived), expectedPingsReceived), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.ReceivedPing), Times.Once);
         }
 
         [Fact]
@@ -125,9 +195,10 @@ namespace PingPongContract.Tests
 
             var player = this.NewPlayer();
 
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
             Assert.Throws<SmartContractAssertException>(() => player.FinishGame());
 
-            this.mockPersistentState.Verify(s => s.GetAddress(nameof(Player.GameStarter)), Times.Once);
+            this.mockPersistentState.Verify(s => s.GetAddress(nameof(Player.PlayerAddress)), Times.Once);
         }
 
         [Fact]
@@ -135,17 +206,20 @@ namespace PingPongContract.Tests
         {
             var player = this.NewPlayer();
 
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+
             player.FinishGame();
 
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.GameFinished));
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(Player.State), (uint)Player.StateType.Finished));
         }
 
         private Player NewPlayer()
         {
-            this.mockContractState.Setup(s => s.Message.Sender).Returns(StarterContractAddress);
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Player.GameStarter))).Returns(StarterContractAddress);
+            this.mockContractState.Setup(s => s.Message.Sender).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Player.PlayerAddress))).Returns(PlayerAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(Player.Opponent))).Returns(OpponentAddress);
 
-            var player = new Player(this.mockContractState.Object, "Test");
+            var player = new Player(this.mockContractState.Object, PlayerAddress, OpponentAddress, "Test");
 
             this.mockPersistentState.Invocations.Clear();
             this.mockInternalExecutor.Invocations.Clear();
