@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29209.62
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingPongContract", "PingPongContract.csproj", "{71DF14AB-420F-45D1-9BCC-7B40B674ACF0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingPongContract", "PingPongContract\PingPongContract.csproj", "{71DF14AB-420F-45D1-9BCC-7B40B674ACF0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingPongContract.Tests", "..\PingPongContract.Tests\PingPongContract.Tests.csproj", "{100CC590-D79F-4CF9-8846-1AE5672E9987}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingPongContract.Tests", "PingPongContract.Tests\PingPongContract.Tests.csproj", "{100CC590-D79F-4CF9-8846-1AE5672E9987}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
