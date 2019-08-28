@@ -49,8 +49,10 @@ The List Item function is always available to create new items and consequently 
 
 Application Files
 -----------------
+
 [Bazaar.cs](./BazaarItemListingContract/Bazaar.cs) - This file contains the code for Workflow 1 in the diagram, binding two users in a contract. 
-[ItemListing.cs] (./BazaarItemListingContract/Bazaar.cs) - This file contains the code for Workflow 2 in the diagram, buying and selling an item.
+
+[ItemListing.cs](./BazaarItemListingContract/ItemListing.cs) - This file contains the code for Workflow 2 in the diagram, buying and selling an item.
 
 References
 -----------------

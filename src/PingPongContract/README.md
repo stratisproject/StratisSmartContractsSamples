@@ -30,5 +30,7 @@ The ping pong game starts when the Starter contract is created. The Starter cont
 	
 Application Files
 -----------------
+
 [Player.sol](./PingPongContract/Player.sol)
+
 [Starter.sol](./PingPongContract/Starter.sol)
