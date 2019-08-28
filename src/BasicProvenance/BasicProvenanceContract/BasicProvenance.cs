@@ -1,9 +1,9 @@
 ﻿using System;
 using Stratis.SmartContracts;
 
-public class BasicProvenanceContract : SmartContract
+public class BasicProvenance : SmartContract
 {
-    public BasicProvenanceContract(ISmartContractState smartContractState, Address supplyChainOwner, Address supplyChainObserver)
+    public BasicProvenance(ISmartContractState smartContractState, Address supplyChainOwner, Address supplyChainObserver)
     : base(smartContractState)
     {
         this.InitiatingCounterParty = Message.Sender;

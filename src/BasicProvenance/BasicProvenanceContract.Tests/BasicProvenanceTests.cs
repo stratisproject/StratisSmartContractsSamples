@@ -5,7 +5,7 @@ using System;
 using System.Reflection;
 using Xunit;
 
-namespace BasicProvenance.Tests
+namespace BasicProvenanceContract.Tests
 {
     public class BasicProvenanceTests
     {
@@ -39,15 +39,15 @@ namespace BasicProvenance.Tests
         }
 
         [Theory]
-        [InlineData(nameof(BasicProvenanceContract.State))]
-        [InlineData(nameof(BasicProvenanceContract.InitiatingCounterParty))]
-        [InlineData(nameof(BasicProvenanceContract.CounterParty))]
-        [InlineData(nameof(BasicProvenanceContract.PreviousCounterParty))]
-        [InlineData(nameof(BasicProvenanceContract.SupplyChainOwner))]
-        [InlineData(nameof(BasicProvenanceContract.SupplyChainObserver))]
+        [InlineData(nameof(BasicProvenance.State))]
+        [InlineData(nameof(BasicProvenance.InitiatingCounterParty))]
+        [InlineData(nameof(BasicProvenance.CounterParty))]
+        [InlineData(nameof(BasicProvenance.PreviousCounterParty))]
+        [InlineData(nameof(BasicProvenance.SupplyChainOwner))]
+        [InlineData(nameof(BasicProvenance.SupplyChainObserver))]
         public void Property_Setter_Is_Private(string propertyName)
         {
-            Type type = typeof(BasicProvenanceContract);
+            Type type = typeof(BasicProvenance);
 
             PropertyInfo property = type.GetProperty(propertyName);
 
@@ -59,25 +59,25 @@ namespace BasicProvenance.Tests
         {
             this.mockContractState.Setup(s => s.Message.Sender).Returns(InitiatingCounterPartyAddress);
 
-            var basicProvenance = new BasicProvenanceContract(this.mockContractState.Object, SupplyChainOwnerAddress, SupplyChainObserverAddress);
+            var basicProvenance = new BasicProvenance(this.mockContractState.Object, SupplyChainOwnerAddress, SupplyChainObserverAddress);
 
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.InitiatingCounterParty), InitiatingCounterPartyAddress));
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.CounterParty), InitiatingCounterPartyAddress));
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.SupplyChainOwner), SupplyChainOwnerAddress));
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.SupplyChainObserver), SupplyChainObserverAddress));
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenanceContract.State), (uint)BasicProvenanceContract.StateType.Created));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.InitiatingCounterParty), InitiatingCounterPartyAddress));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.CounterParty), InitiatingCounterPartyAddress));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.SupplyChainOwner), SupplyChainOwnerAddress));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.SupplyChainObserver), SupplyChainObserverAddress));
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenance.State), (uint)BasicProvenance.StateType.Created));
         }
 
         [Fact]
         public void TransferResponsibility_Fails_Sender_Not_CounterParty()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup incorrect sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
 
             // Setup counterparty address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.CounterParty))).Returns(CounterPartyAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.CounterParty))).Returns(CounterPartyAddress);
 
             // Attempt to transfer to any address should fail.
             Assert.Throws<SmartContractAssertException>(() => contract.TransferResponsibility(Address.Zero));
@@ -86,16 +86,16 @@ namespace BasicProvenance.Tests
         [Fact]
         public void TransferResponsibility_Fails_State_Is_Completed()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup correct sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(CounterPartyAddress);
 
             // Setup counterparty address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.CounterParty))).Returns(CounterPartyAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.CounterParty))).Returns(CounterPartyAddress);
 
             // Setup state = completed.
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenanceContract.State))).Returns((uint)BasicProvenanceContract.StateType.Completed);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenance.State))).Returns((uint)BasicProvenance.StateType.Completed);
 
             // Attempt to transfer to any address should fail.
             Assert.Throws<SmartContractAssertException>(() => contract.TransferResponsibility(Address.Zero));
@@ -104,59 +104,59 @@ namespace BasicProvenance.Tests
         [Fact]
         public void TransferResponsibility_Succeeds_State_Is_Created()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup correct sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(CounterPartyAddress);
 
             // Setup counterparty address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.CounterParty))).Returns(CounterPartyAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.CounterParty))).Returns(CounterPartyAddress);
 
             // Setup state = created.
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenanceContract.State))).Returns((uint)BasicProvenanceContract.StateType.Created);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenance.State))).Returns((uint)BasicProvenance.StateType.Created);
 
             // Attempt to transfer to any address should succeed.
             contract.TransferResponsibility(IntermediaryAddress);
 
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenanceContract.State), (uint)BasicProvenanceContract.StateType.InTransit), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.PreviousCounterParty), CounterPartyAddress), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.CounterParty), IntermediaryAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenance.State), (uint)BasicProvenance.StateType.InTransit), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.PreviousCounterParty), CounterPartyAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.CounterParty), IntermediaryAddress), Times.Once);
         }
 
         [Fact]
         public void TransferResponsibility_Succeeds_State_Is_InTransit()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup correct sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(CounterPartyAddress);
 
             // Setup counterparty address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.CounterParty))).Returns(CounterPartyAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.CounterParty))).Returns(CounterPartyAddress);
 
             // Setup state = in transit.
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenanceContract.State))).Returns((uint)BasicProvenanceContract.StateType.InTransit);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenance.State))).Returns((uint)BasicProvenance.StateType.InTransit);
 
             // Attempt to transfer to any address should succeed.
             contract.TransferResponsibility(IntermediaryAddress);
 
             // Make sure the state is not changed.
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenanceContract.State), It.IsAny<uint>()), Times.Never);
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenance.State), It.IsAny<uint>()), Times.Never);
 
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.PreviousCounterParty), CounterPartyAddress), Times.Once);
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.CounterParty), IntermediaryAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.PreviousCounterParty), CounterPartyAddress), Times.Once);
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.CounterParty), IntermediaryAddress), Times.Once);
         }
 
         [Fact]
         public void Complete_Fails_Sender_Not_SupplyChainOwner()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup incorrect sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(Address.Zero);
 
             // Setup supplychainowner address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
 
             // Attempt to call completion with incorrect sender should fail.
             Assert.Throws<SmartContractAssertException>(() => contract.Complete());
@@ -165,53 +165,53 @@ namespace BasicProvenance.Tests
         [Fact]
         public void Complete_Fails_State_Is_Completed()
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup correct sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(SupplyChainOwnerAddress);
 
             // Setup correct supplychainowner address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
 
             // Setup state = completed.
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenanceContract.State))).Returns((uint)BasicProvenanceContract.StateType.Completed);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenance.State))).Returns((uint)BasicProvenance.StateType.Completed);
 
             // Attempt to call completion with incorrect state should fail.
             Assert.Throws<SmartContractAssertException>(() => contract.Complete());
         }
 
         [Theory]
-        [InlineData((uint)BasicProvenanceContract.StateType.InTransit)]
-        [InlineData((uint)BasicProvenanceContract.StateType.Created)]
+        [InlineData((uint)BasicProvenance.StateType.InTransit)]
+        [InlineData((uint)BasicProvenance.StateType.Created)]
         public void Complete_Succeeds(uint state)
         {
-            var contract = this.NewBasicProvenanceContract();
+            var contract = this.NewBasicProvenance();
 
             // Setup correct sender.
             this.mockContractState.Setup(s => s.Message.Sender).Returns(SupplyChainOwnerAddress);
 
             // Setup correct supplychainowner address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.SupplyChainOwner))).Returns(SupplyChainOwnerAddress);
 
             // Setup correct counterparty address.
-            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenanceContract.CounterParty))).Returns(CounterPartyAddress);
+            this.mockPersistentState.Setup(s => s.GetAddress(nameof(BasicProvenance.CounterParty))).Returns(CounterPartyAddress);
 
             // Setup current state.
-            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenanceContract.State))).Returns(state);
+            this.mockPersistentState.Setup(s => s.GetUInt32(nameof(BasicProvenance.State))).Returns(state);
 
             // Attempt to call completion with incorrect state should fail.
             contract.Complete();
 
-            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenanceContract.State), (uint)BasicProvenanceContract.StateType.Completed));
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.PreviousCounterParty), CounterPartyAddress));
-            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenanceContract.CounterParty), Address.Zero));
+            this.mockPersistentState.Verify(s => s.SetUInt32(nameof(BasicProvenance.State), (uint)BasicProvenance.StateType.Completed));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.PreviousCounterParty), CounterPartyAddress));
+            this.mockPersistentState.Verify(s => s.SetAddress(nameof(BasicProvenance.CounterParty), Address.Zero));
         }
 
-        private BasicProvenanceContract NewBasicProvenanceContract()
+        private BasicProvenance NewBasicProvenance()
         {
             this.mockContractState.Setup(s => s.Message.Sender).Returns(InitiatingCounterPartyAddress);
 
-            var result = new BasicProvenanceContract(this.mockContractState.Object, SupplyChainOwnerAddress, SupplyChainObserverAddress);
+            var result = new BasicProvenance(this.mockContractState.Object, SupplyChainOwnerAddress, SupplyChainObserverAddress);
 
             // Reset the invocations that happened in the constructor so we don't accidentally test them.
             this.mockPersistentState.Invocations.Clear();
