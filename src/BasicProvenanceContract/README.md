@@ -32,7 +32,7 @@ States
 Workflow Details
 ----------------
 
-![](media/diagram.png)
+![](diagram.png)
 
 An instance of the Basic Provenance application's workflow starts in the Created
 state when an owner wants to begin a process for tracking ownership or

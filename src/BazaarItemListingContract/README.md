@@ -38,7 +38,7 @@ Item Listing Workflow States
 Workflow Details
 ----------------
 
-![](media/diagram.png)
+![](diagram.png)
 
 An instance of the Bazaar - Item Listing application first creates a binding between two users (here Party A and Party B).  The two users are bound by a smart contract that tracks their balances (here Party A Balance and Party B Balance).  Once  the smart contract is created and deployed on the chain, the instance reaches the Party Provisioned state.
 

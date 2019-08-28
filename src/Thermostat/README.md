@@ -31,7 +31,7 @@ States
 Workflow Details
 ----------------
 
-![](media/diagram.png)
+![](diagram.png)
 
 The room thermostat is a simple workflow to demonstrate how to use the enum data type. Once the installer has installed and started the thermostat, the user can take two main actions. As a user, you can set the target temperature to a temperature you specify, or you can set the mode to one of four modes: Off, Cool, Heat, and Auto. 
 
