@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Thermostat\Thermostat\Thermostat.csproj" />
+    <ProjectReference Include="..\Thermostat\Thermostat.csproj" />
   </ItemGroup>
 
 </Project>

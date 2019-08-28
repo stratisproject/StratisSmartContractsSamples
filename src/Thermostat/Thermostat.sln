@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Thermostat", "Thermostat\Thermostat\Thermostat.csproj", "{ED463AB1-4ADA-4030-8694-C37029B1A6C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Thermostat", "Thermostat\Thermostat.csproj", "{ED463AB1-4ADA-4030-8694-C37029B1A6C1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thermostat.Tests", "Thermostat.Tests\Thermostat.Tests.csproj", "{96DD97D6-BBE9-40B8-9984-8F7C36A7156A}"
 EndProject

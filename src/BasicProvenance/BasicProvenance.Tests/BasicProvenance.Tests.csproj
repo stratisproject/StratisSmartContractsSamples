@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BasicProvenance\BasicProvenance\BasicProvenance.csproj" />
+    <ProjectReference Include="..\BasicProvenance\BasicProvenance.csproj" />
   </ItemGroup>
 
 </Project>

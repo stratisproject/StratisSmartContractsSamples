@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BazaarItemListing", "BazaarItemListing\BazaarItemListing\BazaarItemListing.csproj", "{971F7F29-2A28-46C4-AB37-3A9A043C2C34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BazaarItemListing", "BazaarItemListing\BazaarItemListing.csproj", "{971F7F29-2A28-46C4-AB37-3A9A043C2C34}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BazaarItemListing.Tests", "BazaarItemListing.Tests\BazaarItemListing.Tests.csproj", "{3AEC34BC-76AE-49B3-B8E7-CC36051FDB3C}"
 EndProject
