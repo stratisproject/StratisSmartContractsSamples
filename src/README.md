@@ -12,3 +12,9 @@ This section includes applications and smart contracts that can be deployed on t
 * [Room Thermostat](src/Thermostat/README.md)
 * [Defective Component Counter](src/DefectiveComponentCounterContract/README.md)
 * [Ping Pong Game](src/PingPongContract/README.md)
+
+## Getting Started
+Install [Visual Studio](https://visualstudio.microsoft.com/) and obtain the Stratis Smart Contracts NuGet Package from the Package Manager with the below command.
+
+    Install-Package Stratis.SmartContracts -Version 1.2.1
+
