@@ -43,3 +43,7 @@ Application Files
 -----------------
 
 [HelloBlockchain.cs](./HelloBlockchainContract/HelloBlockchain.cs)
+
+References
+-----------------
+[Azure Workbench Hello Blockchain Example](https://github.com/Azure-Samples/blockchain/tree/master/blockchain-workbench/application-and-smart-contract-samples/hello-blockchain)

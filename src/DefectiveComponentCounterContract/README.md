@@ -31,3 +31,7 @@ An instance of the Defective Component Counter application's workflow starts whe
 Application Files
 -----------------
 [DefectiveComponentCounter.cs](./DefectiveComponentCounterContract/DefectiveComponentCounter.cs)
+
+References
+-----------------
+[Azure Workbench Defective Component Counter Example](https://github.com/Azure-Samples/blockchain/tree/master/blockchain-workbench/application-and-smart-contract-samples/defective-component-counter)

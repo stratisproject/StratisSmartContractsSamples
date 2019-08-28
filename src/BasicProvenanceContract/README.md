@@ -51,3 +51,7 @@ responsibility to a counterparty once and then completing the workflow.
 Application Files
 -----------------
 [BasicProvenance.cs](./BasicProvenanceContract/BasicProvenance.cs)
+
+References
+-----------------
+[Azure Workbench Basic Provenance Example](https://github.com/Azure-Samples/blockchain/tree/master/blockchain-workbench/application-and-smart-contract-samples/basic-provenance)

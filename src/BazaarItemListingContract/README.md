@@ -51,3 +51,7 @@ Application Files
 -----------------
 [Bazaar.cs](./BazaarItemListingContract/Bazaar.cs) - This file contains the code for Workflow 1 in the diagram, binding two users in a contract. 
 [ItemListing.cs] (./BazaarItemListingContract/Bazaar.cs) - This file contains the code for Workflow 2 in the diagram, buying and selling an item.
+
+References
+-----------------
+[Azure Workbench Bazaar Item Listing Example](https://github.com/Azure-Samples/blockchain/tree/master/blockchain-workbench/application-and-smart-contract-samples/bazaar-item-listing)

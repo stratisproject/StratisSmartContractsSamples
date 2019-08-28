@@ -65,3 +65,7 @@ owner grants access to a random third party.
 Application Files
 -----------------
 [DigitalLocker.cs](./DigitalLockerContract/DigitalLocker.cs)
+
+References
+-----------------
+[Azure Workbench Digital Locker Example](https://github.com/Azure-Samples/blockchain/tree/master/blockchain-workbench/application-and-smart-contract-samples/digital-locker)
