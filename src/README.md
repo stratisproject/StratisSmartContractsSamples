@@ -12,9 +12,13 @@ This section includes applications and smart contracts that can be deployed on t
 * [Room Thermostat](src/Thermostat/README.md)
 * [Defective Component Counter](src/DefectiveComponentCounterContract/README.md)
 * [Ping Pong Game](src/PingPongContract/README.md)
+* [Auction](src/Stratis.SmartContracts.Samples/Stratis.SmartContracts.Samples/Auction.cs)
+* [Standard Token](src/Stratis.SmartContracts.Samples/Stratis.SmartContracts.Samples/StandardToken.cs)
 
 ## Getting Started
-Install [Visual Studio](https://visualstudio.microsoft.com/) and obtain the Stratis Smart Contracts NuGet Package from the Package Manager with the below command.
 
-    Install-Package Stratis.SmartContracts -Version 1.2.1
+Clone this repository and open a sample contract's .sln file in [Visual Studio](https://visualstudio.microsoft.com/). The necessary dependencies will be installed automatically via NuGet.
 
+## Running Tests
+
+Tests are written using the Xunit and Moq frameworks. They can be run from within Visual Studio using the Test Explorer.
