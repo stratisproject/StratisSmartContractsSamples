@@ -18,7 +18,7 @@ Player Workflow States
 |----------------------|-------------------------------------------------------------------------------------------------------------|
 | Provisioned | The state that is reached after the contract is first created.|
 | SentPing | The state that is reached after the player has sent a ping, but has not received a response.  |
-| ReceivedPing |  The state that is reached after the player has sent a ping, and has not received a response. |
+| ReceivedPing |  The state that is reached after the player has sent a ping, and has successfully received a response. |
 | Finished | The state that is reached when the ping pong game is finished. |
 	
 	
