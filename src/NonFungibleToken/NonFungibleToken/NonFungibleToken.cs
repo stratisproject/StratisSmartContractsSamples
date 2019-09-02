@@ -168,8 +168,8 @@
         {
             // todo: discuss callback handling and supported interface numbering with community.
             this.SetSupportedInterfaces((uint)0x00000001, true); // (ERC165) - ISupportsInterface
-            this.SetSupportedInterfaces((uint)0x00000002, true); // (ERC721) - INonFungibleToken
-            this.SetSupportedInterfaces((uint)0x00000003, true); // (-) - INonFungibleTokenReceiver
+            this.SetSupportedInterfaces((uint)0x00000002, true); // (ERC721) - INonFungibleToken,
+            this.SetSupportedInterfaces((uint)0x00000003, true); // (ERC721) - INonFungibleTokenReceiver
         }
 
         /// <summary>

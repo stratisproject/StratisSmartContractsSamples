@@ -20,7 +20,7 @@
         /// <param name="to">The new owner.</param>
         /// <param name="tokenId">The NFT to transfer.</param>
         /// <param name="data">Additional data with no specified format, sent in call to 'to'.</param>
-        void SafeTransferFrom( Address from, Address to, ulong tokenId, byte[] data);
+        void SafeTransferFrom(Address from, Address to, ulong tokenId, byte[] data);
 
         /// <summary>
         /// Transfers the ownership of an NFT from one address to another address. This function can
@@ -31,7 +31,7 @@
         /// <param name="from">The current owner of the NFT.</param>
         /// <param name="to">The new owner.</param>
         /// <param name="tokenId">The NFT to transfer.</param>
-        void SafeTransferFrom( Address from, Address to, ulong tokenId);
+        void SafeTransferFrom(Address from, Address to, ulong tokenId);
 
         /// <summary>
         /// Throws unless <see cref="Message.Sender"/> is the current owner, an authorized operator, or the approved
@@ -94,6 +94,6 @@
         /// <param name="owner">The address that owns the NFTs.</param>
         /// <param name="operatorAddress">The address that acts on behalf of the owner.</param>
         /// <returns>True if approved for all, false otherwise.</returns>
-        bool IsApprovedForAll(Address owner,Address operatorAddress);
+        bool IsApprovedForAll(Address owner, Address operatorAddress);
     }
 }
