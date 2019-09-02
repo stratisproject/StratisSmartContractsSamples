@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stratis.SmartContracts.Samples", "Stratis.SmartContracts.Samples\Stratis.SmartContracts.Samples\Stratis.SmartContracts.Samples.csproj", "{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stratis.SmartContracts.Samples", "Stratis.SmartContracts.Samples\Stratis.SmartContracts.Samples.csproj", "{DCEB8C8B-2CD5-4C58-8020-837CFDAA1A27}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stratis.SmartContracts.Samples.Tests", "Stratis.SmartContracts.Samples.Tests\Stratis.SmartContracts.Samples.Tests.csproj", "{637F28C3-8BCE-4324-9105-ACEE620657C2}"
 EndProject
