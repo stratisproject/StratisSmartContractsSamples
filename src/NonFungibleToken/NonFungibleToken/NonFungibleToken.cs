@@ -3,78 +3,11 @@
     using Stratis.SmartContracts;
     using System;
 
-    public class NonFungibleToken : SmartContract, INonFungibleToken
+    /// <summary>
+    /// A non fungible token contract.
+    /// </summary>
+    public class NonFungibleToken : SmartContract, INonFungibleToken, ISupportsInterface, INonFungibleTokenReceiver
     {
-        /**
-         * @dev Magic value of a smart contract that can recieve NFT.
-         * Equal to: bytes4(keccak256("onERC721Received(address,address,uint256,bytes)")).
-         */
-        // todo: how do we calculate if this is still correct after we've implemented the NonFungibleTokenReceiver?
-        internal static readonly byte[] MAGIC_ON_ERC721_RECEIVED = new byte[] { 0x15, 0x0b, 0x7a, 0x02 };
-
-        private string GetIdToOwnerKey(ulong id)
-        {
-            return $"IdToOwner:{id}";
-        }
-
-        /**
-         * @dev A mapping from NFT ID to the address that owns it.
-         */
-        private Address GetIdToOwner(ulong id)
-        {
-            return this.PersistentState.GetAddress(GetIdToOwnerKey(id));
-        }
-
-        private void SetIdToOwner(ulong id, Address value)
-        {
-            this.PersistentState.SetAddress(GetIdToOwnerKey(id), value);
-        }
-
-        /**
-         * @dev Mapping from NFT ID to approved address.
-         */
-        private string GetIdToApprovalKey(ulong id)
-        {
-            return $"IdToApproval:{id}";
-        }
-
-        private Address GetIdToApproval(ulong id)
-        {
-            return this.PersistentState.GetAddress(GetIdToApprovalKey(id));
-        }
-
-        private void SetIdToApproval(ulong id, Address value)
-        {
-            this.PersistentState.SetAddress(GetIdToApprovalKey(id), value);
-        }
-
-        /**
-        * @dev Mapping from owner address to count of his tokens.
-        */
-        private ulong GetOwnerToNFTokenCount(Address address)
-        {
-            return this.PersistentState.GetUInt64($"OwnerToNFTokenCount:{address}");
-        }
-
-        private void SetOwnerToNFTokenCount(Address address, ulong value)
-        {
-            this.PersistentState.SetUInt64($"OwnerToNFTokenCount:{address}", value);
-        }
-
-        /**
-         * @dev Mapping from owner address to mapping of operator addresses.
-         */
-        // todo: review if this is the best way to solve it.
-        private bool GetOwnerToOperators(Address owner, Address operatorAddress)
-        {
-            return this.PersistentState.GetBool($"OwnerToOperator:{owner}:{operatorAddress}");
-        }
-
-        private void SetOwnerToOperators(Address owner, Address operatorAddress, bool value)
-        {
-            this.PersistentState.SetBool($"OwnerToOperator:{owner}:{operatorAddress}", value);
-        }
-
         public struct TransferLog
         {
             [Index]
@@ -105,104 +38,209 @@
             public bool Approved;
         }
 
-        /**
-         * @dev Guarantees that the msg.sender is an owner or operator of the given NFT.
-         * @param _tokenId ID of the NFT to validate.
-         */
-        private void CanOperate(ulong tokenId)
+        /// <summary>
+        /// Get a value indicacting if the interface is supported.
+        /// </summary>
+        /// <param name="interfaceId">The id of the interface to support.</param>
+        /// <returns>A value indicating if the interface is supported.</returns>
+        private bool GetSupportedInterfaces(uint interfaceId)
         {
-            Address tokenOwner = GetIdToOwner(tokenId);
-            Assert(tokenOwner == this.Message.Sender || GetOwnerToOperators(tokenOwner, this.Message.Sender));
+            return this.PersistentState.GetBool($"SupportedInterface:{interfaceId}");
         }
 
-        /**
-         * @dev Guarantees that the msg.sender is allowed to transfer NFT.
-         * @param _tokenId ID of the NFT to transfer.
-         */
-        private void CanTransfer(ulong tokenId)
+        /// <summary>
+        /// Sets the supported interface value.
+        /// </summary>
+        /// <param name="interfaceId">The interface id.</param>
+        /// <param name="value">A value indicating if the interface id is supported.</param>
+        private void SetSupportedInterfaces(uint interfaceId, bool value)
         {
-            Address tokenOwner = GetIdToOwner(tokenId);
-            Assert(
-              tokenOwner == this.Message.Sender
-              || GetIdToApproval(tokenId) == Message.Sender
-              || GetOwnerToOperators(tokenOwner, Message.Sender)
-            );
+            this.PersistentState.SetBool($"SupportedInterface:{interfaceId}", value);
         }
 
-        /**
-         * @dev Guarantees that _tokenId is a valid Token.
-         * @param _tokenId ID of the NFT to validate.
-         */
-        private void ValidNFToken(ulong tokenId)
+        /// <summary>
+        /// Gets the key to the persistent state for the owner by NFT ID.
+        /// </summary>
+        /// <param name="id">The NFT ID.</param>
+        /// <returns>The persistent storage key to get or set the NFT owner.</returns>
+        private string GetIdToOwnerKey(ulong id)
         {
-            Assert(GetIdToOwner(tokenId) != Address.Zero);
+            return $"IdToOwner:{id}";
         }
 
-        /**
-         * @dev Contract constructor.
-         */
+        ///<summary>
+        /// Gets the address of the owner of the NFT ID. 
+        ///</summary>
+        /// <param name="id">The ID of the NFT</param>
+        ///<returns>The owner address.</returns>
+        private Address GetIdToOwner(ulong id)
+        {
+            return this.PersistentState.GetAddress(GetIdToOwnerKey(id));
+        }
+
+        /// <summary>
+        /// Sets the owner to the NFT ID.
+        /// </summary>
+        /// <param name="id">The ID of the NFT</param>
+        /// <param name="value">The address of the owner.</param>
+        private void SetIdToOwner(ulong id, Address value)
+        {
+            this.PersistentState.SetAddress(GetIdToOwnerKey(id), value);
+        }
+
+        /// <summary>
+        /// Gets the key to the persistent state for the approval address by NFT ID.
+        /// </summary>
+        /// <param name="id">The NFT ID.</param>
+        /// <returns>The persistent storage key to get or set the NFT approval.</returns>
+        private string GetIdToApprovalKey(ulong id)
+        {
+            return $"IdToApproval:{id}";
+        }
+
+        /// <summary>
+        /// Getting from NFT ID the approval address.
+        /// </summary>
+        /// <param name="id">The ID of the NFT</param>
+        /// <returns>Address of the approval.</returns>
+        private Address GetIdToApproval(ulong id)
+        {
+            return this.PersistentState.GetAddress(GetIdToApprovalKey(id));
+        }
+
+        /// <summary>
+        /// Setting to NFT ID to approval address.
+        /// </summary>
+        /// <param name="id">The ID of the NFT</param>
+        /// <param name="value">The address of the approval.</param>
+        private void SetIdToApproval(ulong id, Address value)
+        {
+            this.PersistentState.SetAddress(GetIdToApprovalKey(id), value);
+        }
+        
+        /// <summary>
+        /// Gets the amount of non fungible tokens the owner has.
+        /// </summary>
+        /// <param name="address">The address of the owner.</param>
+        /// <returns>The amount of non fungible tokens.</returns>
+        private ulong GetOwnerToNFTokenCount(Address address)
+        {
+            return this.PersistentState.GetUInt64($"OwnerToNFTokenCount:{address}");
+        }
+
+        /// <summary>
+        /// Sets the owner count of this non fungible tokens.
+        /// </summary>
+        /// <param name="address">The address of the owner.</param>
+        /// <param name="value">The amount of tokens.</param>
+        private void SetOwnerToNFTokenCount(Address address, ulong value)
+        {
+            this.PersistentState.SetUInt64($"OwnerToNFTokenCount:{address}", value);
+        }
+        
+        /// <summary>
+        /// Gets the permission value of the operator authorization to perform actions on behalf of the owner.
+        /// </summary>
+        /// <param name="owner">The owner address of the NFT.</param>
+        /// <param name="operatorAddress">>Address of the authorized operators</param>
+        /// <returns>A value indicating if the operator has permissions to act on behalf of the owner.</returns>
+        private bool GetOwnerToOperators(Address owner, Address operatorAddress)
+        {
+            return this.PersistentState.GetBool($"OwnerToOperator:{owner}:{operatorAddress}");
+        }
+
+        /// <summary>
+        /// Sets the owner to operator permission.
+        /// </summary>
+        /// <param name="owner">The owner address of the NFT.</param>
+        /// <param name="operatorAddress">>Address to add to the set of authorized operators.</param>
+        /// <param name="value">The permission value.</param>
+        private void SetOwnerToOperators(Address owner, Address operatorAddress, bool value)
+        {
+            this.PersistentState.SetBool($"OwnerToOperator:{owner}:{operatorAddress}", value);
+        }
+
+        /// <summary>
+        /// Constructor. Initializes the supported interfaces.
+        /// </summary>
+        /// <param name="state">The smart contract state.</param>
         public NonFungibleToken(ISmartContractState state) : base(state)
         {
-            this.SetSupportedInterfaces(0x01ffc9a7, true); // ERC165
-            this.SetSupportedInterfaces(0x80ac58cd, true); // ERC721
+            // todo: discuss callback handling and supported interface numbering with community.
+            this.SetSupportedInterfaces((uint)0x00000001, true); // (ERC165) - ISupportsInterface
+            this.SetSupportedInterfaces((uint)0x00000002, true); // (ERC721) - INonFungibleToken
+            this.SetSupportedInterfaces((uint)0x00000003, true); // (-) - INonFungibleTokenReceiver
         }
 
-        /**
-         * @dev Transfers the ownership of an NFT from one address to another address. This function can
-         * be changed to payable.
-         * @notice Throws unless `msg.sender` is the current owner, an authorized operator, or the
-         * approved address for this NFT. Throws if `_from` is not the current owner. Throws if `_to` is
-         * the zero address. Throws if `_tokenId` is not a valid NFT. When transfer is complete, this
-         * function checks if `_to` is a smart contract (code size > 0). If so, it calls 
-         * `onERC721Received` on `_to` and throws if the return value is not 
-         * `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`.
-         * @param _from The current owner of the NFT.
-         * @param _to The new owner.
-         * @param _tokenId The NFT to transfer.
-         * @param _data Additional data with no specified format, sent in call to `_to`.
-         */
-        public void SafeTransferFrom(
-          Address from,
-          Address to,
-          ulong tokenId,
-          byte[] data)
+        /// <summary>
+        /// Function to check which interfaces are supported by this contract.
+        /// </summary>
+        /// <param name="interfaceID">Id of the interface.</param>
+        /// <returns>True if <see cref="interfaceID"/> is supported, false otherwise.</returns>
+        public bool SupportsInterface(uint interfaceID)
+        {
+            return GetSupportedInterfaces(interfaceID);
+        }
+
+        /// <summary>
+        /// Handle the receipt of a NFT. The smart contract calls this function on the
+        /// recipient after a transfer. This function MAY throw or return false to revert and reject the transfer.
+        /// Return true if the transfer is ok.
+        /// </summary>
+        /// <remarks>Up to the contract to implement. This contract just returns true.</remarks>
+        /// <param name="operatorAddress">The address which called safeTransferFrom function.</param>
+        /// <param name="fromAddress">The address which previously owned the token.</param>
+        /// <param name="tokenId">The NFT identifier which is being transferred.</param>
+        /// <param name="data">Additional data with no specified format.</param>
+        /// <returns>A bool indicating the resulting operation.</returns>
+        public bool OnNonFungibleTokenReceived(Address operatorAddress, Address fromAddress, ulong tokenId, byte[] data)
+        {            
+            return true;
+        }
+
+        /// <summary>
+        /// Transfers the ownership of an NFT from one address to another address. This function can
+        /// be changed to payable.
+        /// </summary>
+        /// <remarks>Throws unless <see cref="Message.Sender"/> is the current owner, an authorized operator, or the
+        /// approved address for this NFT.Throws if 'from' is not the current owner.Throws if 'to' is
+        /// the zero address.Throws if 'tokenId' is not a valid NFT. When transfer is complete, this
+        /// function checks if 'to' is a smart contract. If so, it calls
+        /// 'OnNonFungibleTokenReceived' on 'to' and throws if the return value true.</remarks>
+        /// <param name="from">The current owner of the NFT.</param>
+        /// <param name="to">The new owner.</param>
+        /// <param name="tokenId">The NFT to transfer.</param>
+        /// <param name="data">Additional data with no specified format, sent in call to 'to'.</param>
+        public void SafeTransferFrom(Address from, Address to, ulong tokenId, byte[] data)
         {
             SafeTransferFromInternal(from, to, tokenId, data);
         }
 
-        /**
-         * @dev Transfers the ownership of an NFT from one address to another address. This function can
-         * be changed to payable.
-         * @notice This works identically to the other function with an extra data parameter, except this
-         * function just sets data to ""
-         * @param _from The current owner of the NFT.
-         * @param _to The new owner.
-         * @param _tokenId The NFT to transfer.
-         */
-        public void SafeTransferFrom(
-          Address from,
-          Address to,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Transfers the ownership of an NFT from one address to another address. This function can
+        /// be changed to payable.
+        /// </summary>
+        /// <remarks>This works identically to the other function with an extra data parameter, except this
+        /// function just sets data to an empty byte array.</remarks>
+        /// <param name="from">The current owner of the NFT.</param>
+        /// <param name="to">The new owner.</param>
+        /// <param name="tokenId">The NFT to transfer.</param>
+        public void SafeTransferFrom(Address from, Address to, ulong tokenId)
         {
             SafeTransferFromInternal(from, to, tokenId, new byte[0]);
         }
 
-        /**
-         * @dev Throws unless `msg.sender` is the current owner, an authorized operator, or the approved
-         * address for this NFT. Throws if `_from` is not the current owner. Throws if `_to` is the zero
-         * address. Throws if `_tokenId` is not a valid NFT. This function can be changed to payable.
-         * @notice The caller is responsible to confirm that `_to` is capable of receiving NFTs or else
-         * they maybe be permanently lost.
-         * @param _from The current owner of the NFT.
-         * @param _to The new owner.
-         * @param _tokenId The NFT to transfer.
-         */
-        public void TransferFrom(
-          Address from,
-          Address to,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Throws unless <see cref="Message.Sender"/> is the current owner, an authorized operator, or the approved
+        /// address for this NFT.Throws if <see cref="from"/> is not the current owner.Throws if <see cref="to"/> is the zero
+        /// address.Throws if <see cref="tokenId"/> is not a valid NFT. This function can be changed to payable.
+        /// </summary>
+        /// <remarks>The caller is responsible to confirm that <see cref="to"/> is capable of receiving NFTs or else
+        /// they maybe be permanently lost.</remarks>
+        /// <param name="from">The current owner of the NFT.</param>
+        /// <param name="to">The new owner.</param>
+        /// <param name="tokenId">The NFT to transfer.</param>
+        public void TransferFrom(Address from, Address to, ulong tokenId)
         {
             CanTransfer(tokenId);
             ValidNFToken(tokenId);
@@ -214,17 +252,16 @@
             TransferInternal(to, tokenId);
         }
 
-        /**
-         * @dev Set or reaffirm the approved address for an NFT. This function can be changed to payable.
-         * @notice The zero address indicates there is no approved address. Throws unless `msg.sender` is
-         * the current NFT owner, or an authorized operator of the current owner.
-         * @param _approved Address to be approved for the given NFT ID.
-         * @param _tokenId ID of the token to be approved.
-         */
-        public void Approve(
-          Address approved,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Set or reaffirm the approved address for an NFT. This function can be changed to payable.
+        /// </summary>
+        /// <remarks>
+        /// The zero address indicates there is no approved address. Throws unless <see cref="Message.Sender"/> is
+        /// the current NFT owner, or an authorized operator of the current owner.
+        /// </remarks>
+        /// <param name="approved">Address to be approved for the given NFT ID.</param>
+        /// <param name="tokenId">ID of the token to be approved.</param>
+        public void Approve(Address approved, ulong tokenId)
         {
             CanOperate(tokenId);
             ValidNFToken(tokenId);
@@ -236,90 +273,74 @@
             LogApproval(tokenOwner, approved, tokenId);
         }
 
-        /**
-         * @dev Enables or disables approval for a third party ("operator") to manage all of
-         * `msg.sender`'s assets. It also emits the ApprovalForAll event.
-         * @notice This works even if sender doesn't own any tokens at the time.
-         * @param _operator Address to add to the set of authorized operators.
-         * @param _approved True if the operators is approved, false to revoke approval.
-         */
-        public void SetApprovalForAll(
-          Address operatorAddress,
-          bool approved
-        )
+        /// <summary>
+        /// Enables or disables approval for a third party ("operator") to manage all of
+        /// <see cref="Message.Sender"/>'s assets. It also Logs the ApprovalForAll event.
+        /// </summary>
+        /// <remarks>This works even if sender doesn't own any tokens at the time.</remarks>
+        /// <param name="operatorAddress">Address to add to the set of authorized operators.</param>
+        /// <param name="approved">True if the operators is approved, false to revoke approval.</param>
+        public void SetApprovalForAll(Address operatorAddress, bool approved)
         {
             SetOwnerToOperators(this.Message.Sender, operatorAddress, approved);
             LogApprovalForAll(this.Message.Sender, operatorAddress, approved);
         }
 
-        /**
-         * @dev Returns the number of NFTs owned by `_owner`. NFTs assigned to the zero address are
-         * considered invalid, and this function throws for queries about the zero address.
-         * @param _owner Address for whom to query the balance.
-         * @return Balance of _owner.
-         */
-        public ulong BalanceOf(
-          Address owner
-        )
+        /// <summary>
+        /// Returns the number of NFTs owned by 'owner'. NFTs assigned to the zero address are
+        /// considered invalid, and this function throws for queries about the zero address.
+        /// </summary>
+        /// <param name="owner">Address for whom to query the balance.</param>
+        /// <returns>Balance of owner.</returns>
+        public ulong BalanceOf(Address owner)
         {
             Assert(owner != Address.Zero);
             return GetOwnerToNFTokenCount(owner);
         }
 
-        /**
-         * @dev Returns the address of the owner of the NFT. NFTs assigned to zero address are considered
-         * invalid, and queries about them do throw.
-         * @param _tokenId The identifier for an NFT.
-         * @return Address of _tokenId owner.
-         */
-        public Address OwnerOf(
-          ulong tokenId
-        )
+        /// <summary>
+        /// Returns the address of the owner of the NFT. NFTs assigned to zero address are considered invalid, and queries about them do throw.
+        /// </summary>
+        /// <param name="tokenId">The identifier for an NFT.</param>
+        /// <returns>Address of tokenId owner.</returns>
+        public Address OwnerOf(ulong tokenId)
         {
             Address owner = GetIdToOwner(tokenId);
             Assert(owner != Address.Zero);
             return owner;
         }
 
-        /**
-         * @dev Get the approved address for a single NFT.
-         * @notice Throws if `_tokenId` is not a valid NFT.
-         * @param _tokenId ID of the NFT to query the approval of.
-         * @return Address that _tokenId is approved for. 
-         */
-        public Address GetApproved(
-          ulong tokenId
-        )
+        /// <summary>
+        /// Get the approved address for a single NFT.
+        /// </summary>
+        /// <remarks>Throws if 'tokenId' is not a valid NFT.</remarks>
+        /// <param name="tokenId">ID of the NFT to query the approval of.</param>
+        /// <returns>Address that tokenId is approved for. </returns>
+        public Address GetApproved(ulong tokenId)
         {
             ValidNFToken(tokenId);
 
             return GetIdToApproval(tokenId);
         }
 
-        /**
-         * @dev Checks if `_operator` is an approved operator for `_owner`.
-         * @param _owner The address that owns the NFTs.
-         * @param _operator The address that acts on behalf of the owner.
-         * @return True if approved for all, false otherwise.
-         */
-        public bool IsApprovedForAll(
-          Address owner,
-          Address operatorAddress
-        )
+        /// <summary>
+        /// Checks if 'operator' is an approved operator for 'owner'.
+        /// </summary>
+        /// <param name="owner">The address that owns the NFTs.</param>
+        /// <param name="operatorAddress">The address that acts on behalf of the owner.</param>
+        /// <returns>True if approved for all, false otherwise.</returns>
+        public bool IsApprovedForAll(Address owner, Address operatorAddress)
         {
             return GetOwnerToOperators(owner, operatorAddress);
         }
 
-        /**
-         * @dev Actually preforms the transfer.
-         * @notice Does NO checks.
-         * @param _to Address of a new owner.
-         * @param _tokenId The NFT that is being transferred.
-         */
-        private void TransferInternal(
-          Address to,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Actually preforms the transfer.
+        /// </summary>
+        /// <remarks>Does NO checks.</remarks>
+        /// <param name="to">Address of a new owner.</param>
+        /// <param name="tokenId">The NFT that is being transferred.</param>
+        private void TransferInternal(Address to, ulong tokenId)
         {
             Address from = GetIdToOwner(tokenId);
             ClearApproval(tokenId);
@@ -330,75 +351,26 @@
             LogTransfer(from, to, tokenId);
         }
 
-        /**
-         * @dev Mints a new NFT.
-         * @notice This is an internal function which should be called from user-implemented external
-         * mint function. Its purpose is to show and properly initialize data structures when using this
-         * implementation.
-         * @param _to The address that will own the minted NFT.
-         * @param _tokenId of the NFT to be minted by the msg.sender.
-         */
-        private void Mint(
-          Address to,
-          ulong tokenId
-        )
-        {
-            // todo: no references and not on interface? what to do?
-            Assert(to != Address.Zero);
-            Assert(GetIdToOwner(tokenId) == Address.Zero);
-
-            AddNFToken(to, tokenId);
-
-            LogTransfer(Address.Zero, to, tokenId);
-        }
-
-        /**
-         * @dev Burns a NFT.
-         * @notice This is an internal function which should be called from user-implemented external burn
-         * function. Its purpose is to show and properly initialize data structures when using this
-         * implementation. Also, note that this burn implementation allows the minter to re-mint a burned
-         * NFT.
-         * @param _tokenId ID of the NFT to be burned.
-         */
-        private void Burn(
-          ulong tokenId
-        )
-        {
-            // todo: no references and not on interface? what to do?
-            ValidNFToken(tokenId);
-
-            Address tokenOwner = GetIdToOwner(tokenId);
-            ClearApproval(tokenId);
-            RemoveNFToken(tokenOwner, tokenId);
-            LogTransfer(tokenOwner, Address.Zero, tokenId);
-        }
-
-        /**
-         * @dev Removes a NFT from owner.
-         * @notice Use and override this function with caution. Wrong usage can have serious consequences.
-         * @param _from Address from wich we want to remove the NFT.
-         * @param _tokenId Which NFT we want to remove.
-         */
-        private void RemoveNFToken(
-          Address from,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Removes a NFT from owner.
+        /// </summary>
+        /// <remarks>Use and override this function with caution. Wrong usage can have serious consequences.</remarks>
+        /// <param name="from">Address from wich we want to remove the NFT.</param>
+        /// <param name="tokenId">Which NFT we want to remove.</param>
+        private void RemoveNFToken(Address from, ulong tokenId)
         {
             Assert(GetIdToOwner(tokenId) == from);
-            SetOwnerToNFTokenCount(from, GetOwnerToNFTokenCount(from) - 1);
+            SetOwnerToNFTokenCount(from, checked(GetOwnerToNFTokenCount(from) - 1));
             this.PersistentState.Clear(GetIdToOwnerKey(tokenId));
         }
 
-        /**
-         * @dev Assignes a new NFT to owner.
-         * @notice Use and override this function with caution. Wrong usage can have serious consequences.
-         * @param _to Address to wich we want to add the NFT.
-         * @param _tokenId Which NFT we want to add.
-         */
-        public void AddNFToken(
-          Address to,
-          ulong tokenId
-        )
+        /// <summary>
+        /// Assignes a new NFT to owner.
+        /// </summary>
+        /// <remarks>Use and override this function with caution. Wrong usage can have serious consequences.</remarks>
+        /// <param name="to">Address to which we want to add the NFT.</param>
+        /// <param name="tokenId">Which NFT we want to add.</param>
+        private void AddNFToken(Address to, ulong tokenId)
         {
             Assert(GetIdToOwner(tokenId) == Address.Zero);
 
@@ -407,32 +379,14 @@
             SetOwnerToNFTokenCount(to, checked(currentTokenAmount + 1));
         }
 
-        /**
-         * @dev Helper function that gets NFT count of owner. This is needed for overriding in enumerable
-         * extension to remove double storage (gas optimization) of owner nft count.
-         * @param _owner Address for whom to query the count.
-         * @return Number of _owner NFTs.
-         */
-        /*private ulong GetOwnerNFTCount(
-          Address owner
-        )
-        {            
-            return GetOwnerToNFTokenCount(owner);
-        }*/
-
-        /**
-         * @dev Actually perform the safeTransferFrom.
-         * @param _from The current owner of the NFT.
-         * @param _to The new owner.
-         * @param _tokenId The NFT to transfer.
-         * @param _data Additional data with no specified format, sent in call to `_to`.
-         */
-        private void SafeTransferFromInternal(
-          Address from,
-          Address to,
-          ulong tokenId,
-          byte[] data
-        )
+        /// <summary>
+        /// Actually perform the safeTransferFrom.
+        /// </summary>
+        /// <param name="from">The current owner of the NFT.</param>
+        /// <param name="to">The new owner.</param>
+        /// <param name="tokenId">The NFT to transfer.</param>
+        /// <param name="data">Additional data with no specified format, sent in call to 'to' if it is a contract.</param>
+        private void SafeTransferFromInternal(Address from, Address to, ulong tokenId, byte[] data)
         {
             CanTransfer(tokenId);
             ValidNFToken(tokenId);
@@ -445,19 +399,16 @@
 
             if (this.PersistentState.IsContract(to))
             {
-                ITransferResult result = this.Call(to, 0, "onERC721Received", new object[] { this.Message.Sender, from, tokenId, data }, 0);
-                var retval = result.ReturnValue as byte[];
-                Assert(MagicBytesEqual(retval, MAGIC_ON_ERC721_RECEIVED));
+                ITransferResult result = this.Call(to, 0, "OnNonFungibleTokenReceived", new object[] { this.Message.Sender, from, tokenId, data }, 0);
+                Assert(Convert.ToBoolean(result.ReturnValue));
             }
         }
 
-        /** 
-         * @dev Clears the current approval of a given NFT ID.
-         * @param _tokenId ID of the NFT to be transferred.
-         */
-        private void ClearApproval(
-          ulong tokenId
-        )
+        /// <summary>
+        /// Clears the current approval of a given NFT ID.
+        /// </summary>
+        /// <param name="tokenId">ID of the NFT to be transferred</param>
+        private void ClearApproval(ulong tokenId)
         {
             if (GetIdToApproval(tokenId) != Address.Zero)
             {
@@ -465,101 +416,76 @@
             }
         }
 
-        /**
-     * @dev Emits when ownership of any NFT changes by any mechanism. This event emits when NFTs are
-     * created (`from` == 0) and destroyed (`to` == 0). Exception: during contract creation, any
-     * number of NFTs may be created and assigned without emitting Transfer. At the time of any
-     * transfer, the approved Address for that NFT (if any) is reset to none.
-     */
-        private void LogTransfer(
-          Address from,
-          Address to,
-          ulong tokenId
-        )
+        /// <summary>
+        /// This logs when ownership of any NFT changes by any mechanism. This event logs when NFTs are
+        /// created('from' == 0) and destroyed('to' == 0). Exception: during contract creation, any
+        /// number of NFTs may be created and assigned without logging Transfer.At the time of any
+        /// transfer, the approved Address for that NFT (if any) is reset to none.
+        /// </summary>
+        /// <param name="from">The from address.</param>
+        /// <param name="to">The to address.</param>
+        /// <param name="tokenId">The NFT ID.</param>
+        private void LogTransfer(Address from, Address to, ulong tokenId)
         {
             Log(new TransferLog() { From = from, To = to, TokenId = tokenId });
         }
 
-        /**
-         * @dev This emits when the approved Address for an NFT is changed or reaffirmed. The zero
-         * Address indicates there is no approved Address. When a Transfer event emits, this also
-         * indicates that the approved Address for that NFT (if any) is reset to none.
-         */
-        private void LogApproval(
-          Address owner,
-          Address approved,
-          ulong tokenId
-        )
+        /// <summary>
+        /// This logs when the approved Address for an NFT is changed or reaffirmed. The zero
+        /// Address indicates there is no approved Address. When a Transfer logs, this also
+        /// indicates that the approved Address for that NFT (if any) is reset to none.
+        /// </summary>
+        /// <param name="owner">The owner address.</param>
+        /// <param name="operatorAddress">The approved address.</param>
+        /// <param name="tokenId">The NFT ID.</param>
+        private void LogApproval(Address owner, Address approved, ulong tokenId)
         {
             Log(new ApprovalLog() { Owner = owner, Approved = approved, TokenId = tokenId });
         }
 
-        /**
-         * @dev This emits when an operator is enabled or disabled for an owner. The operator can manage
-         * all NFTs of the owner.
-         */
-        private void LogApprovalForAll(
-          Address owner,
-          Address operatorAddress,
-          bool approved
-        )
+        /// <summary>
+        /// This logs when an operator is enabled or disabled for an owner. The operator can manage all NFTs of the owner.
+        /// </summary>
+        /// <param name="owner">The owner address</param>
+        /// <param name="operatorAddress">The operator address.</param>
+        /// <param name="approved">A boolean indicating if it has been approved.</param>        
+        private void LogApprovalForAll(Address owner, Address operatorAddress, bool approved)
         {
             Log(new ApprovalForAllLog() { Owner = owner, Operator = operatorAddress, Approved = approved });
         }
 
-        private bool GetSupportedInterfaces(uint interfaceId)
+
+        /// <summary>
+        /// Guarantees that the <see cref="Message.Sender"/> is an owner or operator of the given NFT.
+        /// </summary>
+        /// <param name="tokenId">ID of the NFT to validate.</param>
+        private void CanOperate(ulong tokenId)
         {
-            return this.PersistentState.GetBool($"SupportedInterface:{interfaceId}");
+            Address tokenOwner = GetIdToOwner(tokenId);
+            Assert(tokenOwner == this.Message.Sender || GetOwnerToOperators(tokenOwner, this.Message.Sender));
         }
 
-        private void SetSupportedInterfaces(uint interfaceId, bool value)
+        /// <summary>
+        /// Guarantees that the msg.sender is allowed to transfer NFT.
+        /// </summary>
+        /// <param name="tokenId">ID of the NFT to transfer.</param>
+        private void CanTransfer(ulong tokenId)
         {
-            this.PersistentState.SetBool($"SupportedInterface:{interfaceId}", value);
+            Address tokenOwner = GetIdToOwner(tokenId);
+            Assert(
+              tokenOwner == this.Message.Sender
+              || GetIdToApproval(tokenId) == Message.Sender
+              || GetOwnerToOperators(tokenOwner, Message.Sender)
+            );
         }
 
-        /**
-         * @dev Function to check which interfaces are suported by this contract.
-         * @param _interfaceID Id of the interface.
-         * @return True if _interfaceID is supported, false otherwise.
-         */
-        public bool SupportsInterface(uint interfaceID)
+        /// <summary>
+        /// Guarantees that tokenId is a valid Token.
+        /// </summary>
+        /// <param name="tokenId">ID of the NFT to validate.</param>
+        private void ValidNFToken(ulong tokenId)
         {
-            // todo: go back to byte4?
-            return GetSupportedInterfaces(interfaceID);
-        }
-
-        // todo: rename to onNonFungibleTokenReceived?
-        public byte[] onERC721Received(Address operatorAddress, Address fromAddress, ulong tokenId, byte[] data)
-        {
-            // todo: update documentation.
-            string stringToHash = $"onERC721Received{operatorAddress},{fromAddress},{tokenId},{BitConverter.ToString(data)}";
-            byte[] bytesToHash = Array.ConvertAll(stringToHash.ToCharArray(), s => Convert.ToByte(s));
-            var keccakHash = this.Keccak256(bytesToHash);
-            var magicBytes = new byte[] { keccakHash[0], keccakHash[1], keccakHash[2], keccakHash[3] };
-            return magicBytes;
-        }
-
-        private bool MagicBytesEqual(byte[] b1, byte[] b2)
-        {
-            if (b1 == null || b2 == null)
-            {
-                return false;
-            }
-
-            if (b1.Length != 4 || b2.Length != 4)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < 4; i++)
-            {
-                if (!b1[i].Equals(b2[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            Assert(GetIdToOwner(tokenId) != Address.Zero);
         }
     }
 }
