@@ -224,6 +224,104 @@
             Assert.Equal((ulong)15, result);
         }
 
+        [Fact]
+        public void SetApprovalForAll_SetsMessageSender_ToOperatorApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            nonFungibleToken.SetApprovalForAll(operatorAddress, true);
+
+            Assert.NotEmpty(this.ownerToOperator);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.ApprovalForAllLog { Owner = ownerAddress, Operator = operatorAddress, Approved = true }));
+        }
+
+        [Fact]
+        public void Approve_TokenOwnerNotMessageSenderOrOperator_ThrowsException()
+        {
+            this.idToOwner.Clear();
+            this.ownerToOperator.Clear();
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var someAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.Approve(someAddress, 1));
+        }
+
+        [Fact]
+        public void Approve_ValidApproval_SwitchesOwnerToApprovedForNFToken()
+        {
+            this.idToApproval.Clear();
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var someAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.Approve(someAddress, 1);
+
+            Assert.NotEmpty(this.idToApproval);
+            Assert.Equal(this.idToApproval["IdToApproval:1"], someAddress);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.ApprovalLog { Owner = ownerAddress, Approved = someAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void Approve_NTFokenOwnerSameAsMessageSender_ThrowsException()
+        {
+            this.idToApproval.Clear();
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var someAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.Approve(ownerAddress, 1));
+        }
+
+        [Fact]
+        public void Approve_ValidApproval_ByApprovedOperator_SwitchesOwnerToApprovedForNFToken()
+        {
+            this.idToApproval.Clear();
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var someAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.Approve(someAddress, 1);
+
+            Assert.NotEmpty(this.idToApproval);
+            Assert.Equal(this.idToApproval["IdToApproval:1"], someAddress);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.ApprovalLog { Owner = ownerAddress, Approved = someAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void Approve_InvalidNFToken_ThrowsException()
+        {
+            this.idToApproval.Clear();
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = Address.Zero;
+            var someAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", Address.Zero);
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.Approve(someAddress, 1));
+        }
+
         private NonFungibleToken CreateNonFungibleToken()
         {
             return new NonFungibleToken(this.smartContractStateMock.Object);
