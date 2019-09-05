@@ -144,7 +144,7 @@
         /// <param name="owner">The owner address of the NFT.</param>
         /// <param name="operatorAddress">>Address of the authorized operators</param>
         /// <returns>A value indicating if the operator has permissions to act on behalf of the owner.</returns>
-        private bool GetOwnerToOperators(Address owner, Address operatorAddress)
+        private bool GetOwnerToOperator(Address owner, Address operatorAddress)
         {
             return this.PersistentState.GetBool($"OwnerToOperator:{owner}:{operatorAddress}");
         }
@@ -155,7 +155,7 @@
         /// <param name="owner">The owner address of the NFT.</param>
         /// <param name="operatorAddress">>Address to add to the set of authorized operators.</param>
         /// <param name="value">The permission value.</param>
-        private void SetOwnerToOperators(Address owner, Address operatorAddress, bool value)
+        private void SetOwnerToOperator(Address owner, Address operatorAddress, bool value)
         {
             this.PersistentState.SetBool($"OwnerToOperator:{owner}:{operatorAddress}", value);
         }
@@ -282,7 +282,7 @@
         /// <param name="approved">True if the operators is approved, false to revoke approval.</param>
         public void SetApprovalForAll(Address operatorAddress, bool approved)
         {
-            SetOwnerToOperators(this.Message.Sender, operatorAddress, approved);
+            SetOwnerToOperator(this.Message.Sender, operatorAddress, approved);
             LogApprovalForAll(this.Message.Sender, operatorAddress, approved);
         }
 
@@ -331,7 +331,7 @@
         /// <returns>True if approved for all, false otherwise.</returns>
         public bool IsApprovedForAll(Address owner, Address operatorAddress)
         {
-            return GetOwnerToOperators(owner, operatorAddress);
+            return GetOwnerToOperator(owner, operatorAddress);
         }
 
         /// <summary>
@@ -462,7 +462,7 @@
         private void CanOperate(ulong tokenId)
         {
             Address tokenOwner = GetIdToOwner(tokenId);
-            Assert(tokenOwner == this.Message.Sender || GetOwnerToOperators(tokenOwner, this.Message.Sender));
+            Assert(tokenOwner == this.Message.Sender || GetOwnerToOperator(tokenOwner, this.Message.Sender));
         }
 
         /// <summary>
@@ -475,7 +475,7 @@
             Assert(
               tokenOwner == this.Message.Sender
               || GetIdToApproval(tokenId) == Message.Sender
-              || GetOwnerToOperators(tokenOwner, Message.Sender)
+              || GetOwnerToOperator(tokenOwner, Message.Sender)
             );
         }
 

@@ -17,14 +17,17 @@
         private Dictionary<string, Address> idToApproval;
         private Dictionary<string, bool> ownerToOperator;
         private Dictionary<string, ulong> ownerToNFTokenCount;
+        private Mock<IInternalTransactionExecutor> internalTransactionExecutorMock;
 
         public NonFungibleTokenTests()
         {
             this.contractLoggerMock = new Mock<IContractLogger>();
             this.persistentStateMock = new Mock<IPersistentState>();
             this.smartContractStateMock = new Mock<ISmartContractState>();
+            this.internalTransactionExecutorMock = new Mock<IInternalTransactionExecutor>();
             this.smartContractStateMock.Setup(s => s.PersistentState).Returns(this.persistentStateMock.Object);
             this.smartContractStateMock.Setup(s => s.ContractLogger).Returns(this.contractLoggerMock.Object);
+            this.smartContractStateMock.Setup(x => x.InternalTransactionExecutor).Returns(this.internalTransactionExecutorMock.Object);
 
             this.supportedInterfaces = new Dictionary<string, bool>();
             this.idToOwner = new Dictionary<string, Address>();
@@ -322,6 +325,787 @@
             Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.Approve(someAddress, 1));
         }
 
+        [Fact]
+        public void TransferFrom_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.TransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void TransferFrom_ValidTokenTransfer_MessageSenderApprovedForTokenIdByOwner_TransfersTokenFrom_To_ClearsApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var approvalAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Add("IdToApproval:1", approvalAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(approvalAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.TransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void TransferFrom_ValidTokenTransfer_MessageSenderApprovedOwnerToOperator_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Clear();
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.TransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void TransferFrom_MessageSenderNotAllowedToCall_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var invalidSenderAddress = "0x0000000000000000000000000000000000000015".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(invalidSenderAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.TransferFrom(ownerAddress, targetAddress, 1));
+        }
+
+        [Fact]
+        public void TransferFrom_NFTokenOwnerZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", Address.Zero);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(Address.Zero);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.TransferFrom(Address.Zero, targetAddress, 1));
+        }
+
+        [Fact]
+        public void TransferFrom_TokenDoesNotBelongToFrom_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var notOwningAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.TransferFrom(notOwningAddress, targetAddress, 1));
+        }
+
+        [Fact]
+        public void TransferFrom_ToAddressZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.TransferFrom(ownerAddress, Address.Zero, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractFalse_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractFalse_MessageSenderApprovedForTokenIdByOwner_TransfersTokenFrom_To_ClearsApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var approvalAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Add("IdToApproval:1", approvalAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(approvalAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractFalse_ValidTokenTransfer_MessageSenderApprovedOwnerToOperator_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Clear();
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTrue_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.Empty((byte[])callParams[3]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTrue_MessageSenderApprovedForTokenIdByOwner_TransfersTokenFrom_To_ClearsApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var approvalAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Add("IdToApproval:1", approvalAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(approvalAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { approvalAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.Empty((byte[])callParams[3]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTrue_ValidTokenTransfer_MessageSenderApprovedOwnerToOperator_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Clear();
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { operatorAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.Empty((byte[])callParams[3]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_MessageSenderNotAllowedToCall_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var invalidSenderAddress = "0x0000000000000000000000000000000000000015".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(invalidSenderAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_NFTokenOwnerZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", Address.Zero);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(Address.Zero);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(Address.Zero, targetAddress, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_TokenDoesNotBelongToFrom_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var notOwningAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(notOwningAddress, targetAddress, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ValidTokenTransfer_ToContractReturnsFalse_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.Empty((byte[])callParams[3]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(false));
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTruthyObject_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.Empty((byte[])callParams[3]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(1));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_NoDataProvided_ToAddressZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, Address.Zero, 1));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractFalse_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractFalse_MessageSenderApprovedForTokenIdByOwner_TransfersTokenFrom_To_ClearsApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var approvalAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Add("IdToApproval:1", approvalAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(approvalAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractFalse_ValidTokenTransfer_MessageSenderApprovedOwnerToOperator_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Clear();
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(false);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+
+            this.internalTransactionExecutorMock.Verify(t => t.Call(It.IsAny<ISmartContractState>(), It.IsAny<Address>(), It.IsAny<ulong>(), "OnNonFungibleTokenReceived", It.IsAny<object[]>(), It.IsAny<ulong>()), Times.Never);
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTrue_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.NotEmpty((byte[])callParams[3]);
+                    Assert.Equal(0xff, ((byte[])callParams[3])[0]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTrue_MessageSenderApprovedForTokenIdByOwner_TransfersTokenFrom_To_ClearsApproval()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var approvalAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Add("IdToApproval:1", approvalAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(approvalAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { approvalAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.NotEmpty((byte[])callParams[3]);
+                    Assert.Equal(0xff, ((byte[])callParams[3])[0]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTrue_ValidTokenTransfer_MessageSenderApprovedOwnerToOperator_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var operatorAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.idToApproval.Clear();
+            this.ownerToOperator.Add($"OwnerToOperator:{ownerAddress}:{operatorAddress}", true);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(operatorAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { operatorAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.NotEmpty((byte[])callParams[3]);
+                    Assert.Equal(0xff, ((byte[])callParams[3])[0]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(true));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Empty(this.idToApproval);
+            Assert.True(this.ownerToOperator[$"OwnerToOperator:{ownerAddress}:{operatorAddress}"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_MessageSenderNotAllowedToCall_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var invalidSenderAddress = "0x0000000000000000000000000000000000000015".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(invalidSenderAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_NFTokenOwnerZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", Address.Zero);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(Address.Zero);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(Address.Zero, targetAddress, 1, new byte[1] { 0xff }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_TokenDoesNotBelongToFrom_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            var notOwningAddress = "0x0000000000000000000000000000000000000008".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(notOwningAddress, targetAddress, 1, new byte[1] { 0xff }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ValidTokenTransfer_ToContractReturnsFalse_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.NotEmpty((byte[])callParams[3]);
+                    Assert.Equal(0xff, ((byte[])callParams[3])[0]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(false));
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTruthyObject_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+            this.persistentStateMock.Setup(p => p.IsContract(targetAddress))
+                .Returns(true);
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            var callParamsExpected = new object[] { ownerAddress, ownerAddress, (ulong)1, new byte[0] };
+            this.internalTransactionExecutorMock.Setup(
+                t => t.Call(
+                It.IsAny<ISmartContractState>(),
+                targetAddress,
+                0,
+                "OnNonFungibleTokenReceived",
+                It.IsAny<object[]>(),
+                It.IsAny<ulong>()))
+                .Callback<ISmartContractState, Address, ulong, string, object[], ulong>((a, b, c, d, callParams, f) =>
+                {
+                    Assert.Equal(callParamsExpected[0], callParams[0]);
+                    Assert.Equal(callParamsExpected[1], callParams[1]);
+                    Assert.Equal(callParamsExpected[2], callParams[2]);
+                    Assert.NotEmpty((byte[])callParams[3]);
+                    Assert.Equal(0xff, ((byte[])callParams[3])[0]);
+                    Assert.Equal(typeof(byte[]), callParams[3].GetType());
+                })
+                .Returns(TransferResult.Transferred(1));
+
+            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
+
+            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
+            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
+            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
+            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+        }
+
+        [Fact]
+        public void SafeTransferFrom_DataProvided_ToAddressZero_ThrowsException()
+        {
+            var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
+            this.idToOwner.Add("IdToOwner:1", ownerAddress);
+            this.ownerToNFTokenCount.Add($"OwnerToNFTokenCount:{ownerAddress}", 1);
+            this.smartContractStateMock.Setup(m => m.Message.Sender).Returns(ownerAddress);
+
+            var nonFungibleToken = this.CreateNonFungibleToken();
+
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, Address.Zero, 1, new byte[1] { 0xff }));
+        }
+
         private NonFungibleToken CreateNonFungibleToken()
         {
             return new NonFungibleToken(this.smartContractStateMock.Object);
@@ -412,6 +1196,12 @@
 
                     return Address.Zero;
                 });
+
+            this.persistentStateMock.Setup(p => p.Clear(It.Is<string>(s => s.StartsWith("IdToApproval:"))))
+               .Callback<string>((key) =>
+               {
+                   this.idToApproval.Remove(key);
+               });
         }
 
         private void SetupIdToOwner()
@@ -437,6 +1227,12 @@
                     }
 
                     return Address.Zero;
+                });
+
+            this.persistentStateMock.Setup(p => p.Clear(It.Is<string>(s => s.StartsWith("IdToOwner:"))))
+                .Callback<string>((key) =>
+                {
+                    this.idToOwner.Remove(key);
                 });
         }
 
