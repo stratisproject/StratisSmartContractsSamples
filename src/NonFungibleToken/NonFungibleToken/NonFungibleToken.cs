@@ -6,7 +6,7 @@
     /// <summary>
     /// A non fungible token contract.
     /// </summary>
-    public class NonFungibleToken : SmartContract, INonFungibleToken, ISupportsInterface, INonFungibleTokenReceiver
+    public class NonFungibleToken : SmartContract, INonFungibleToken, ISupportsInterface
     {
         public struct TransferLog
         {
@@ -169,7 +169,7 @@
             // todo: discuss callback handling and supported interface numbering with community.
             this.SetSupportedInterfaces((uint)0x00000001, true); // (ERC165) - ISupportsInterface
             this.SetSupportedInterfaces((uint)0x00000002, true); // (ERC721) - INonFungibleToken,
-            this.SetSupportedInterfaces((uint)0x00000003, true); // (ERC721) - INonFungibleTokenReceiver
+            this.SetSupportedInterfaces((uint)0x00000003, false); // (ERC721) - INonFungibleTokenReceiver
         }
 
         /// <summary>
@@ -180,22 +180,6 @@
         public bool SupportsInterface(uint interfaceID)
         {
             return GetSupportedInterfaces(interfaceID);
-        }
-
-        /// <summary>
-        /// Handle the receipt of a NFT. The smart contract calls this function on the
-        /// recipient after a transfer. This function MAY throw or return false to revert and reject the transfer.
-        /// Return true if the transfer is ok.
-        /// </summary>
-        /// <remarks>Up to the contract to implement. This contract just returns true.</remarks>
-        /// <param name="operatorAddress">The address which called safeTransferFrom function.</param>
-        /// <param name="fromAddress">The address which previously owned the token.</param>
-        /// <param name="tokenId">The NFT identifier which is being transferred.</param>
-        /// <param name="data">Additional data with no specified format.</param>
-        /// <returns>A bool indicating the resulting operation.</returns>
-        public bool OnNonFungibleTokenReceived(Address operatorAddress, Address fromAddress, ulong tokenId, byte[] data)
-        {            
-            return true;
         }
 
         /// <summary>

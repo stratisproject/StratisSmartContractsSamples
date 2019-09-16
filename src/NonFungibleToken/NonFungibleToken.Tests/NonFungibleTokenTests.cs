@@ -46,7 +46,7 @@
             Assert.Equal(3, this.supportedInterfaces.Count);
             Assert.True(this.supportedInterfaces["SupportedInterface:1"]);
             Assert.True(this.supportedInterfaces["SupportedInterface:2"]);
-            Assert.True(this.supportedInterfaces["SupportedInterface:3"]);
+            Assert.False(this.supportedInterfaces["SupportedInterface:3"]);
         }
 
         [Fact]
@@ -54,7 +54,7 @@
         {
             var nonFungibleToken = this.CreateNonFungibleToken();
 
-            var result = nonFungibleToken.SupportsInterface(3);
+            var result = nonFungibleToken.SupportsInterface(2);
 
             Assert.True(result);
         }
@@ -63,7 +63,7 @@
         public void SupportsInterface_InterfaceSetToFalseSupported_ReturnsFalse()
         {
             var nonFungibleToken = this.CreateNonFungibleToken();
-            this.supportedInterfaces["SupportedInterface:3"] = false;
+            this.supportedInterfaces["SupportedInterface:2"] = false;
 
             var result = nonFungibleToken.SupportsInterface(3);
 
@@ -78,16 +78,6 @@
             var result = nonFungibleToken.SupportsInterface(4);
 
             Assert.False(result);
-        }
-
-        [Fact]
-        public void OnNonFungibleTokenReceived_ReturnsTrue()
-        {
-            var nonFungibleToken = this.CreateNonFungibleToken();
-
-            var result = nonFungibleToken.OnNonFungibleTokenReceived(Address.Zero, Address.Zero, 1, new byte[0]);
-
-            Assert.True(result);
         }
 
         [Fact]
