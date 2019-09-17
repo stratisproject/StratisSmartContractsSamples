@@ -713,7 +713,7 @@
         }
 
         [Fact]
-        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTruthyObject_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        public void SafeTransferFrom_NoDataProvided_ToContractTrue_ContractCallReturnsTruthyObject_CannotCastToBool_ThrowsException()
         {
             var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
             var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
@@ -743,12 +743,7 @@
                 })
                 .Returns(TransferResult.Transferred(1));
 
-            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1);
-
-            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
-            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
-            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
-            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1));
         }
 
         [Fact]
@@ -1044,7 +1039,7 @@
         }
 
         [Fact]
-        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTruthyObject_ValidTokenTransfer_MessageSender_TransfersTokenFrom_To()
+        public void SafeTransferFrom_DataProvided_ToContractTrue_ContractCallReturnsTruthyObject_CannotCastToBool_ThrowsException()
         {
             var ownerAddress = "0x0000000000000000000000000000000000000006".HexToAddress();
             var targetAddress = "0x0000000000000000000000000000000000000007".HexToAddress();
@@ -1075,12 +1070,7 @@
                 })
                 .Returns(TransferResult.Transferred(1));
 
-            nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff });
-
-            Assert.Equal(targetAddress, this.idToOwner["IdToOwner:1"]);
-            Assert.Equal((ulong)0, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{ownerAddress}"]);
-            Assert.Equal((ulong)1, this.ownerToNFTokenCount[$"OwnerToNFTokenCount:{targetAddress}"]);
-            this.contractLoggerMock.Verify(l => l.Log(It.IsAny<ISmartContractState>(), new NonFungibleToken.TransferLog { From = ownerAddress, To = targetAddress, TokenId = 1 }));
+            Assert.Throws<SmartContractAssertException>(() => nonFungibleToken.SafeTransferFrom(ownerAddress, targetAddress, 1, new byte[1] { 0xff }));
         }
 
         [Fact]

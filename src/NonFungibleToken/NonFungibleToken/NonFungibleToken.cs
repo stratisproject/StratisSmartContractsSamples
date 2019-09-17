@@ -384,7 +384,19 @@
             if (this.PersistentState.IsContract(to))
             {
                 ITransferResult result = this.Call(to, 0, "OnNonFungibleTokenReceived", new object[] { this.Message.Sender, from, tokenId, data }, 0);
-                Assert(Convert.ToBoolean(result.ReturnValue));
+                try
+                {
+                    Assert((bool)result.ReturnValue);
+                }                
+                catch (Exception ex)
+                {
+                    if (ex is InvalidCastException || ex is NullReferenceException)
+                    {
+                        Assert(false);
+                    }
+
+                    throw;
+                }
             }
         }
 
