@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NonFungibleToken\NonFungibleToken.csproj" />
+    <ProjectReference Include="..\NonFungibleToken\NonFungibleTokenContract.csproj" />
   </ItemGroup>
 
 </Project>

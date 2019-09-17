@@ -1,4 +1,4 @@
-﻿namespace NonFungibleToken
+﻿namespace NonFungibleTokenContract
 {
     using Stratis.SmartContracts;
 

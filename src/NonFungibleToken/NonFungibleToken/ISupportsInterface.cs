@@ -1,4 +1,4 @@
-﻿namespace NonFungibleToken
+﻿namespace NonFungibleTokenContract
 {
     /// <summary>
     /// Interface for a class with interface indication support.
