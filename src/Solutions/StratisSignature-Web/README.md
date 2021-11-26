@@ -56,7 +56,7 @@ Any user can register with the application by providing basic detail such as nam
 
 Dashboard showing counts of documents assigned to the user. 
 
-<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/blob/master/Images/3.Dashboard.jpg" width="90%"></img>
+<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/Images/3.Dashboard.jpg" width="90%"></img>
 
 **Awaiting My Sign:** Counts of documents remaining sign by the logged-in user. <br> 
 **Completed:** Counts of documents signed by all the signers.
@@ -65,13 +65,13 @@ Dashboard showing counts of documents assigned to the user.
 
 The application user can add other registered users in his/her contact list. These contacts will be displaying during document creation and can choose as signers.
 
-<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/blob/master/Images/4.%20Contacts.jpg" width="90%"></img>
+<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/Images/4.%20Contacts.jpg" width="90%"></img>
 
 #### Document Creation
 
 The logged-in user can create a new document by providing the required information along with a document file(in pdf format only). Currently, the system supports only two signers. 
 
-<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/blob/master/Images/5.Create%20Document.jpg" width="70%"></img>
+<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/Images/5.Create%20Document.jpg" width="70%"></img>
 
 This creation method will call the smart contract methods `CreateAgreement` and `AddSigners`.
 
@@ -79,13 +79,13 @@ This creation method will call the smart contract methods `CreateAgreement` and 
 
 A signer can sign the document from the detail page. This will sign the transaction and execute the `SignAgreement` function of the smart contract and stored signing information to the contract state.
 
-<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/blob/master/Images/7.Document%20Detail.jpg" width="90%"></img>
+<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/Images/7.Document%20Detail.jpg" width="90%"></img>
 
 #### Verify
 
 This module is to check the authenticity of any document, whether the document is signed using a particular wallet address. The verify method get the stamping detail from smart contract and matches with the requested file.
 
-<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/blob/master/Images/8.Verify.jpg" width="90%"></img>
+<img src="https://github.com/stratisproject/StratisSmartContractsSamples/tree/master/src/Solutions/StratisSignature-Web/Images/8.Verify.jpg" width="90%"></img>
 
 #### <ins> **Note :** </ins>
 
