@@ -1,4 +1,4 @@
-## Inspiration
+# Inspiration - https://github.com/ranjancse26/Stratis-SaleDeedRegistry
 
 The Sale Deed Registry, A based smart contract application was inspired by the "Indian" government. Currently, most of these aspects are done with the combination of tons of paperwork and some electronic. Though few states went ahead and implemented a fully electronic way of filing the submission for the "Sale Deed", however, it's taking a significant amount of time for the whole process to complete.
 
