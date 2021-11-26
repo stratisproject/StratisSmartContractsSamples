@@ -1,0 +1,341 @@
+﻿/* Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+a.navbar-brand {
+    white-space: normal;
+    text-align: center;
+    word-break: break-all;
+}
+
+
+/* Sticky footer styles
+-------------------------------------------------- */
+
+html {
+    font-size: 14px;
+}
+
+body {
+    font-family: 'Raleway', sans-serif;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.border-top {
+    border-top: 1px solid #e5e5e5;
+}
+
+.border-bottom {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow {
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+}
+
+button.accept-policy {
+    font-size: 1rem;
+    line-height: inherit;
+}
+
+
+/* Sticky footer styles
+-------------------------------------------------- */
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    /* Margin bottom by footer height */
+    margin-bottom: 60px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 500;
+}
+
+h2 {
+    font-size: 26px;
+}
+
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 14px;
+    border-top: none;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    /* Set the fixed height of the footer here */
+    height: 60px;
+    line-height: 60px;
+    /* Vertically center the text there */
+}
+
+.form-control:focus {
+    box-shadow: none !important;
+}
+
+.field-validation-error {
+    margin-top: 5px;
+    display: inline-block;
+    font-size: 13px;
+}
+
+
+/* LOGIN PAGE*/
+
+.login-box {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+    .login-box .form-control {
+        border: none;
+        border-bottom: 1px solid #ced4da;
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .login-box .form-group {
+        margin-bottom: 30px;
+    }
+
+    .login-box label {
+        font-weight: 500;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        color: #4c4c4c;
+        margin-bottom: 0;
+    }
+
+
+/* LOGIN PAGE*/
+
+.dashboard-block {
+    position: relative;
+}
+
+.d-widget {
+    position: relative;
+    background: #fff;
+    padding: 20px 10px;
+    padding: 25px 20px;
+    -moz-border-radius: 4px;
+    -o-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    -ms-border-radius: 4px;
+    border-radius: 4px;
+    border: 1px solid #e2e2e2;
+    border-left: 4px solid #003d5a;
+}
+
+    .d-widget .media i {
+        height: 48px;
+        width: 48px;
+        border-radius: 50px;
+        background-color: #003d5a;
+        text-align: center;
+        color: #ffffff;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        margin-right: 20px;
+    }
+
+    .d-widget .media h4 {
+        font-size: 28px;
+        color: #354052;
+        display: block;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 1;
+        margin-bottom: 12px;
+    }
+
+    .d-widget .media p {
+        margin-bottom: 0;
+        font-size: 16px;
+        line-height: 1;
+        color: #7f8fa4;
+    }
+
+    .d-widget.complete {
+        border-left: 4px solid #9ec78b;
+    }
+
+        .d-widget.complete .media i {
+            background-color: #9ec78b;
+        }
+
+.detail h4.card-header,
+.Signers h4.card-header,
+.Notarization h4.card-header {
+    text-align: center;
+    font-size: 20px;
+}
+
+.detail .card.h-100,
+.Signers .card.h-100 .Notarization .card.h-100 {
+    border-radius: 0;
+}
+
+.detail-left,
+.detail-right {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.detail-left {
+    font-size: 37px;
+    width: 45px;
+}
+
+.detail-right {
+    width: calc(100% - 55px);
+}
+
+    .detail-right h5.card-title {
+        margin-bottom: 0;
+    }
+
+    .detail-right p.user {
+        font-size: 13px;
+    }
+
+        .detail-right p.user strong {
+            font-weight: 600;
+        }
+
+p.short-detail {
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.user-name,
+.user-btn {
+    list-style: none;
+    display: inline-block;
+}
+
+.user-name {
+    width: calc(100% - 50px);
+    text-align: left;
+}
+
+.user-btn {
+    width: 40px;
+}
+
+.user-name {
+    width: calc(100% - 80px);
+    text-align: left;
+    font-weight: 600;
+}
+
+.user-btn {
+    width: 73px;
+    background: #e2e2e2;
+    box-shadow: none !important;
+    border: 0;
+    border-radius: 5px;
+    padding: 5px;
+    transition: 0.3s linear;
+    vertical-align: top;
+}
+
+    .user-btn:hover {
+        background: #0069d9;
+        color: white;
+    }
+
+.user-main {
+    margin-bottom: 20px;
+}
+
+p.pnd-btn {
+    display: inline-block;
+    width: 73px;
+}
+
+.Notarization p.card-text {
+    text-align: center;
+    padding-top: 40px;
+}
+
+.Notarization-detail input[type="text"] {
+    width: 100%;
+    background: #ececec;
+    padding: 7px;
+    border: solid 1px #cccccc;
+    border-radius: 5px;
+    margin-bottom: 30px;
+}
+
+.Notarization-detail p {
+    font-size: 14px;
+    margin-bottom: 6px;
+    text-align: left;
+}
+
+button.Notarization-btn {
+    margin: auto;
+    background: #0069d9;
+    color: white;
+    padding: 5px 9px;
+    border: 0;
+    border-radius: 5px;
+}
+
+.Notarization-detail {
+    text-align: center;
+}
+
+.detail-form {
+    width: 360px;
+    margin: 50px auto;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    padding-bottom: 15px;
+}
+
+.form-group.required.verify, .contact-box .form-group.required {
+    display: block;
+    width: 100%;
+    padding: 20px;
+    padding-bottom: 0;
+}
+
+.form-group.required.file.verify {
+    padding-top: 0;
+}
+
+
+.contact-box .form-group.required {
+    padding-left: 0;
+    margin-bottom: 0 !important;
+}
+
+.contact-box .col-md-8 .form-group.required:last-child {
+    margin-bottom: 15px !important;
+}
+
+.detail-main {
+    margin-top: 3%
+}

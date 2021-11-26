@@ -1,0 +1,35 @@
+﻿@model Signature.Web.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="dashboard-block">
+    <div class="container">
+        <div class="row">
+            <div class="col mb-4">
+                <div class="d-widget">
+                    <div class="align-items-center media">
+                        <i class="fa fa-pencil" aria-hidden="true"></i>
+                        <div class="media-body">
+                            <h4>@Model.AwaitingSignCount</h4>
+                            <p>Awaiting My Sign</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="d-widget complete">
+                    <div class="align-items-center media">
+                        <i class="fa fa-file-text-o" aria-hidden="true"></i>
+                        <div class="media-body">
+                            <h4>@Model.CompletedCount</h4>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+

@@ -1,0 +1,52 @@
+﻿@model IEnumerable<Signature.Web.Models.ContactViewModel>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="row align-items-center my-4">
+    <div class="col-sm-6">
+        <h2>Contacts</h2>
+    </div>
+    <div class="col-sm-6 text-right">
+        <a asp-action="AddContact" class="btn btn-primary">Create New</a>
+    </div>
+</div>
+<hr />
+<div class="table-responsive">
+    <table class="table table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.FirstName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.LastName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Email)
+                </th>                
+                <th width="50" class="text-right"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.FirstName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.LastName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Email)
+                    </td>
+                    <td class="text-right">
+                        @Html.ActionLink("Delete", "Delete", new { id = item.ContactId }, new { @class = "btn btn-outline-primary btn-sm" })
+                    </td>
+                </tr>
+            }
+            </tbody>
+    </table>
+</div>

@@ -1,0 +1,178 @@
+﻿@using Signature.Web.Extensions
+@model Signature.Web.Models.DocumentDetailViewModel
+@{
+    ViewData["Title"] = "Document Detail";
+}
+
+<div class="row detail-main">
+    <div class="col-lg-4 mb-4 detail">
+        <div class="card h-100">
+            <h4 class="card-header">Document Details</h4>
+            <div class="card-body">
+                <h5 class="card-title">@Model.Document.DocumentName</h5>
+
+                <div class="detail-main">
+                    <div class="detail-left"><i class="fa fa-file-pdf-o" aria-hidden="true"></i></div>
+                    <div class="detail-right">
+                        <h5 class="card-title">@Model.Document.FileName</h5>
+                        <p class="user"> uploaded by: <strong>@Model.Document.UploadedBy</strong></p>
+                    </div>
+                </div>
+                <p class="short-detail">@Model.Document.Description</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4 Signers">
+        <div class="card h-100">
+            <h4 class="card-header">Signers</h4>
+            <div class="card-body text-center">
+                @foreach (var signer in Model.Signers)
+                {
+                    <div class="user-main">
+                        <div class="user-name">@signer.FirstName @signer.LastName</div>
+                        @if (signer.Signed)
+                        {
+                            <p class="pnd-btn" style="color:forestgreen"> Signed</p>
+                        }
+                        else if (User.GetUserId() == signer.UserId)
+                        {
+                            <button class="user-btn" data-toggle="modal" data-target="#passwordModal" type="button"> Sign in </button>
+                        }
+                        else
+                        {
+                            <p class="pnd-btn"> Pending</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4 Notarization">
+        <div class="card h-100">
+            <h4 class="card-header">Notarization Detail</h4>
+            <div class="card-body">
+                @if (Model.Document.Status == Signature.Utility.DocumentStatus.Signed)
+                {
+                    <div class="Notarization-detail">
+                        <p>Transaction Id:</p>
+                        <input type="text" value="@Model.Document.SignTxHash" readonly />
+                        <p>Block No: @Model.Document.BlockNumber</p>
+                        <button class="Notarization-btn" title="Download Sign Document" onclick="location.href='@Url.Action("Download", "Document", new { id = Model.Document.Id })'">Download</button>
+                    </div>
+                }
+                else
+                {
+                    <p class="card-text">Document Notarization on Blockchain will happen after all signers have signed the document.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <input id="documentId" type="hidden" value="@Model.Document.Id" />
+    <!-- Modal start-->
+    <div class="modal" id="processModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <div>
+                            <span id="process-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal end-->
+    <!-- Modal wallet password start-->
+    <div class="modal fade" id="passwordModal" tabindex="-1" role="dialog" aria-labelledby="passwordModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Provide Your Wallet Password</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <input type="password" class="form-control" id="wallet-password" placeholder="Wallet Password">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button id="sign" type="button" class="btn btn-primary">Sign</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal wallet password ends-->
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+
+            $('#passwordModal').on('hidden.bs.modal', function () {
+                $(this).find('form').trigger('reset');
+            })
+
+            $('#sign').click(function () {
+                var documentId = $('#documentId').val();
+                var password = $('#wallet-password').val();
+                processSign(documentId, password);
+            });
+
+            function processSign(documentId, password) {
+
+                $('#passwordModal').modal('hide');
+
+                $('#processModal').modal('show');
+                $('#process-text').html("Signing Document");
+
+                $.ajax({
+                    type: 'POST',
+                    url: 'Sign',
+                    dataType: 'Json',
+                    async: true,
+                    data: { documentId: documentId, password: password },
+                    success: function (response) {
+
+                        $('#processModal').modal('hide');
+
+                        if (response.success) {
+                            toastr.options.onShown = function () {
+                                location.reload();
+                            }
+                            toastr.success(response.message);
+                        }
+                        else {
+                            toastr.error(response.message);
+                        }
+                    },
+                    error: function (error) {
+                        toastr.error("Internal server error, please try again");
+                        $('#processModal').modal('hide');
+                        console.log(error);
+                    }
+                });
+            }
+        });
+
+        //do not close modal on an enter
+        $(document).keypress(function (e) {
+            if (e.which == 13) {
+                return false;
+            }
+        });
+    </script>
+}

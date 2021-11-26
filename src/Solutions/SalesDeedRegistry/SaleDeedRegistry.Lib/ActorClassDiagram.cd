@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="SaleDeedRegistry.Lib.Actors.BaseActor">
+    <Position X="7.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Actors\BaseActor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Lib.Actors.Payee">
+    <Position X="6.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Actors\Payee.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Lib.Actors.PropertyBuyer">
+    <Position X="10.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAACAIAAAAAAAAAQAAAAEAA=</HashCode>
+      <FileName>Actors\PropertyBuyer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Lib.Actors.PropertySeller">
+    <Position X="4" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Actors\PropertySeller.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Lib.Actors.Supervisor">
+    <Position X="8.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAIAIAAAAAIBAAAEAAMAAAABAAgGYAACAQBAAAgYA=</HashCode>
+      <FileName>Actors\Supervisor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

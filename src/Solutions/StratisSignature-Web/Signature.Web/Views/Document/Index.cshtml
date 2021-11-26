@@ -1,0 +1,59 @@
+﻿@model IEnumerable<Signature.Web.Models.DocumentViewModel>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="row align-items-center my-4">
+    <div class="col-sm-6">
+        <h2>Documents</h2>
+    </div>
+    <div class="col-sm-6 text-right">
+        <a asp-action="Create" class="btn btn-primary">Create New</a>
+    </div>
+</div>
+<hr />
+
+<div class="table-responsive">
+    <table class="table table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.DocumentName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.FileName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.CreationTime)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.UploadedBy)
+                </th>
+                <th width="50" class="text-right"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @item.DocumentName
+                    </td>
+                    <td>
+                        @item.FileName
+                    </td>
+                    <td>
+                        @item.CreationTime.ToString("dd-MM-yyyy hh:mm tt")
+                    </td>
+                    <td>
+                        @item.UploadedBy
+                    </td>
+                    <td class="text-right">
+                        @Html.ActionLink("View", "Detail", new { documentId = item.Id }, new { @class = "btn btn-outline-primary btn-sm" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

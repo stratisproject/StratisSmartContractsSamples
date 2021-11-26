@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SaleDeedRegistry.Lib\Entities\AssetInfo.cs" Link="AssetInfo.cs" />
+    <Compile Include="..\SaleDeedRegistry.Lib\Entities\LocationInfo.cs" Link="LocationInfo.cs" />
+    <Compile Include="..\SaleDeedRegistry.Lib\Entities\PersonInfo.cs" Link="PersonInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SQLite.Net.Core-PCL" Version="3.1.1" />
+    <PackageReference Include="SQLiteNetExtensions" Version="2.1.0" />
+  </ItemGroup>
+
+</Project>

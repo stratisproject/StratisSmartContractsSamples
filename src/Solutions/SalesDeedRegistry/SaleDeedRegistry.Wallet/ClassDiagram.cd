@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="SaleDeedRegistry.Wallet.Entities.WalletAddresses">
+    <Position X="4.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQAAAAAAAAACEAAAAAAIAAAAAAAAAAAQAACA=</HashCode>
+      <FileName>Entities\WalletAddresses.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.WalletAddressesRoot">
+    <Position X="6.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\WalletAddresses.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.Address">
+    <Position X="2.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQAAAAAAAAACEAAAAAAIAAAAAAAAAAAQAACA=</HashCode>
+      <FileName>Entities\WalletBalanceRoot.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.Balance">
+    <Position X="4.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgAAAQBAAAgAAAACEAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>Entities\WalletBalanceRoot.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.WalletBalanceRoot">
+    <Position X="2.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\WalletBalanceRoot.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.Payment">
+    <Position X="2.75" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Entities\WalletHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.TransactionsHistory">
+    <Position X="0.5" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAEAAAAAAAAAAAAAAIEAAAwABgAAAAAAAAAAAAoA=</HashCode>
+      <FileName>Entities\WalletHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.HistoryViewModel">
+    <Position X="0.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>Entities\WalletHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.History">
+    <Position X="6.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgAAAAAAAAgAAAAAAAAAAAAAAQAAAAAAAAAAEAAA=</HashCode>
+      <FileName>Entities\WalletHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.WalletHistoryRoot">
+    <Position X="4.75" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgA=</HashCode>
+      <FileName>Entities\WalletHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SaleDeedRegistry.Wallet.Entities.WalletInfo">
+    <Position X="6.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAiAAAAAAAAAAAAAAAACAAAgAAACABAAAIEAAAAA=</HashCode>
+      <FileName>Entities\WalletInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

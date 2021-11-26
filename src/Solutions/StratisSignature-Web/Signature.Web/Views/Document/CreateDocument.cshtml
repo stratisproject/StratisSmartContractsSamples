@@ -1,0 +1,199 @@
+﻿@model Signature.Web.Models.DocumentViewModel
+
+@{
+    ViewData["Title"] = "Create Document";
+}
+
+<div class="row align-items-center my-4">
+    <div class="col-sm-6">
+        <h2>Create Document</h2>
+    </div>    
+</div>
+
+@if (!ViewContext.ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        @Html.ValidationSummary(false)
+    </div>
+}
+<div class="content">
+    <div class="box">
+        <form id="createform" asp-controller="Document" asp-action="Create" method="post" class="form-horizontal">
+            <div class="box-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group required">
+                            <label class="col-sm-3 control-label">Title</label>
+                            <div class="col-sm-9">
+                                @Html.TextBoxFor(m => m.DocumentName, new { @class = "form-control", @placeholder = "Title" })
+                                <span asp-validation-for="DocumentName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label">Description</label>
+                            <div class="col-sm-9">
+                                @Html.TextAreaFor(m => m.Description, new { @class = "form-control", @rows = 3, @maxlength = "100", @placeholder = "Description goes here..." })
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-group required">
+                            <label class="col-sm-3 control-label">Signers</label>
+                            <div class="col-sm-9">
+                                @Html.ListBoxFor(m => m.SignerIds, (MultiSelectList)ViewBag.Signers, new { @class = "selectpicker" })
+                                <span asp-validation-for="SignerIds" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-group required">
+                            <label class="col-sm-3 control-label">File</label>
+                            <div class="col-sm-9">
+                                <input asp-for="File" type="file" id="fileUpload" accept=".pdf" />
+                                <span asp-validation-for="File" class="text-danger"></span>
+                            </div>
+                            <div class="col-sm-9">
+                                <span style="font-size:small;font-style:italic">(.pdf only supported with max 2MB)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="col-sm-9 col-sm-offset-3">
+                            <input id="btnSubmit" class="btn btn-primary" value="Create" type="button">
+                            <a class="btn btn-primary" href="@Url.Action("Index","Document")">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Modal start-->
+        <div class="modal" id="processModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <div>
+                                <span id="process-text"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:none">
+                        <button id="btnCancel" type="button" class="btn btn-secondary" data-dismiss="modal" style="display:none">Cancel</button>
+                        <button id="btnContinue" type="button" class="btn btn-primary">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Modal end-->
+    </div>
+</div>
+
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+
+            $("#fileUpload").on('change', function () {
+
+                var file = $('input[type=file]').prop('files')[0];
+                var mime = file.type;
+                if (mime != 'application/pdf') {
+                    toastr.error("File extension is not valid");
+                    $("#fileUpload").val("");
+                    return false;
+                }
+                var size = Math.round((file.size / 1024));
+                if (size > 2048) {
+                    toastr.error("File size should be less than 2MB");
+                    $("#fileUpload").val("");
+                    return false;
+                }
+            });
+
+            $("#btnSubmit").click(function () {
+
+                if ($("#SignerIds option:selected").length > 2) {
+                    toastr.error("Only two signers are allowed per one document");
+                }
+
+                var fdata = new FormData();
+
+                var fileInput = $('#fileUpload')[0];
+                var file = fileInput.files[0];
+                fdata.append("file", file);
+
+                fdata.append("DocumentName", $('#DocumentName').val());
+                fdata.append("Description", $('#Description').val());
+                fdata.append("SignerIds", $('#SignerIds').val());
+
+                $('#processModal').modal('show');
+                $('#process-text').html("Creating Document");
+
+                createDocument(fdata);
+            });
+
+            function createDocument(formData) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'Create',
+                    processData: false,
+                    contentType: false,
+                    async: true,
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            addSigners(response.data);
+                            console.log("newDocumentId", response.data);
+                            $('#process-text').html("Adding signers");
+                        }
+                        else {
+                            $('#processModal').modal('hide');
+                            toastr.error(response.message);
+                            return false;
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+            function addSigners(documentId) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'AddSigners',
+                    dataType: 'json',
+                    data: { documentId: documentId },
+                    success: function (response) {
+                        if (response.success) {
+
+                            $('.spinner-border').hide();
+                            $('#process-text').html("Click continue to view the Document");
+                            $('.modal-footer').css("display", 'block');
+
+                            $("#btnContinue").bind({
+                                click: function () {
+                                    window.location.href = 'Detail?documentId=' + documentId;
+                                }
+                            });
+                            toastr.success(response.message);
+                        }
+                        else {
+                            $('.modal-footer, #btnCancel').css("display", 'block');
+                            $('#process-text, #btnContinue, .spinner-border').hide();
+
+                            toastr.error(response.message);
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        });
+    </script>
+}
