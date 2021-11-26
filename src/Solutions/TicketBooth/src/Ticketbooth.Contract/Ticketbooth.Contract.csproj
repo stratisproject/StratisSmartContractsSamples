@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>7.0</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Company>Develop Momentum</Company>
+    <Authors>Adam Shirt</Authors>
+    <PackageId>Ticketbooth</PackageId>
+    <Description>Components of the Ticketbooth smart contract</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/drmathias/Ticketbooth</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Product>Ticketbooth</Product>
+    <PackageTags>blockchain stratis ticketing smart-contracts ticketbooth</PackageTags>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Stratis.SmartContracts" Version="1.2.1" />
+  </ItemGroup>
+</Project>

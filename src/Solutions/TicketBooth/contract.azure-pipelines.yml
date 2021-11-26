@@ -1,0 +1,47 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  srcProject: 'src/Ticketbooth.Contract/Ticketbooth.Contract.csproj'
+  testProject: 'test/Ticketbooth.Contract.Tests/Ticketbooth.Contract.Tests.csproj'
+
+steps:
+
+- task: UseDotNet@2
+  displayName: Use .NET Core 3
+  inputs:
+    packageType: 'sdk'
+    version: '3.0.101'
+
+- task: DotNetCoreCLI@2
+  displayName: Restore
+  inputs:
+    command: 'restore'
+    projects: |
+     $(srcProject)
+     $(testProject)
+    feedsToUse: 'select'
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: 'build'
+    projects: |
+     $(srcProject)
+     $(testProject)
+
+- task: DotNetCoreCLI@2
+  displayName: Test
+  inputs:
+    command: 'test'
+    projects: $(testProject)
+    testRunTitle: 'Contract Tests'

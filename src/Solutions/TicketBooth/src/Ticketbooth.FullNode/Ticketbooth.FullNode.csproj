@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stratis.Bitcoin" Version="3.0.5" />
+    <PackageReference Include="Stratis.Bitcoin.Features.BlockStore" Version="3.0.5" />
+    <PackageReference Include="Stratis.Bitcoin.Features.MemoryPool" Version="3.0.5" />
+    <PackageReference Include="Stratis.Bitcoin.Features.SmartContracts" Version="1.0.2" />
+    <PackageReference Include="Stratis.Sidechains.Networks" Version="1.0.2" />
+    <PackageReference Include="Ticketbooth.Api" Version="1.0.0-rc2">
+      <CopyToOutputDirectory>lib\netcoreapp2.1\*</CopyToOutputDirectory>      <!-- Necessary to retrieve XML document in build output -->
+    </PackageReference>
+  </ItemGroup>
+  
+  
+  <!-- Targets taken from https://snede.net/add-nuget-package-xml-documentation-to-swagger/ -->
+
+  <Target Name="CopyPackagesOnBuild" AfterTargets="Build">
+    <ItemGroup>
+      <PackageReferenceFiles Condition="%(PackageReference.CopyToOutputDirectory) != ''" Include="$(NugetPackageRoot)\%(PackageReference.Identity)\%(PackageReference.Version)\%(PackageReference.CopyToOutputDirectory)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PackageReferenceFiles)" DestinationFolder="$(OutDir)" />
+  </Target>
+
+  <Target Name="CopyPackagesOnPublish" BeforeTargets="PrepareForPublish">
+    <ItemGroup>
+      <PackageReferenceFiles Condition="%(PackageReference.CopyToOutputDirectory) != ''" Include="$(NugetPackageRoot)\%(PackageReference.Identity)\%(PackageReference.Version)\%(PackageReference.CopyToOutputDirectory)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PackageReferenceFiles)" DestinationFolder="$(PublishDir)" />
+  </Target>
+
+</Project>
